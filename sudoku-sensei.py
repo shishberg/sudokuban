@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# sudoku-gui.py - GUI for Sudoku Sensei.
+# sudoku-sensei.py - GUI for Sudoku Sensei.
 #
 # Copyright (C) 2005 David McLeish <dave@dmcleish.id.au>
 #
