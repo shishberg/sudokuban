@@ -192,37 +192,45 @@ class SudokuBoard:
                 return 0
             else:
                 return []
+
+        revert = []
+        
+        while True:
+            moves = self.logicalMoves(maxCount = 1)
+            if not moves:
+                break
+            
+            for (cell, value) in moves.items():
+                revert.append(cell)
+                cell.setValue(value)
         
         nextCell = None
         nextPossible = None
 
-	moves = self.logicalMoves(maxCount = 1)
-	if moves:
-            for (cell, value) in moves.items():
-                cell.setValue(value)
-            solutions = self.solve(countOnly, maxCount)
-            for (cell, value) in moves.items():
+        for row in self.cells:
+            for cell in row:
+                if not cell.value:
+                    possible = cell.possibleValues()
+                    if not possible:
+                        for cell in revert:
+                            cell.setValue(None)
+                        if countOnly:
+                            return 0
+                        else:
+                            return []
+                    if (not nextCell) or (len(possible) < len(nextPossible)):
+                        nextCell = cell
+                        nextPossible = possible
+                        break
+        
+        if not nextCell:
+            if countOnly:
+                solutions = 1
+            else:
+                solutions = [self.copy()]
+            for cell in revert:
                 cell.setValue(None)
             return solutions
-	else:
-            for row in self.cells:
-                for cell in row:
-                    if not cell.value:
-                        possible = cell.possibleValues()
-                        if not possible:
-                            if countOnly:
-                                return 0
-                            else:
-                                return []
-                        if (not nextCell) or (len(possible) < len(nextPossible)):
-                            nextCell = cell
-                            nextPossible = possible
-        
-            if not nextCell:
-                if countOnly:
-                    return 1
-                else:
-                    return [self.copy()]
 
         if countOnly:
             solutions = 0
@@ -240,8 +248,11 @@ class SudokuBoard:
                 else:
                     maxCount -= len(solutions)
                 if maxCount <= 0:
-                    return solutions
+                    break
 
+        for cell in revert:
+            cell.setValue(None)
+            
         return solutions
         
 
