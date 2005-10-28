@@ -1,4 +1,8 @@
-import sys, math
+import sys, math, random
+
+def testDifficulty():
+    for filename in ['easy.txt', 'moderate.txt', 'medium.txt', 'challenging.txt', 'tough.txt', 'deadend.txt']:
+        print filename.ljust(16), readSudoku(filename).difficulty()
 
 CELL_PRESET = 0
 CELL_UNSET  = 1
@@ -36,13 +40,55 @@ def readSudoku(filename):
                 board[x, y].state = CELL_PRESET
 
     return board
+
+
+def randomCompleted(board = None):
+    if not board:
+        board = SudokuBoard()
+
+    solved = None
+
+    logical = board.logicalMoves().items()
+    for (cell, value) in logical:
+        cell.setValue(value)
+
+    if board.isSolved():
+        solved = board.copy()
+    else:
+        while True:
+            x = random.randint(0, board.size[0] - 1)
+            y = random.randint(0, board.size[1] - 1)
+            cell = board[x, y]
+            if not cell.value:
+                break
+
+        possible = cell.possibleValues()
+        random.shuffle(possible)
+        for n in possible:
+            cell.setValue(n)
+            solved = randomCompleted(board)
+            cell.setValue(None)
+            if solved:
+                break
+
+    for (cell, value) in logical:
+        cell.setValue(None)
+
+    return solved
+
     
+    
+
+    
+
 
 class SudokuBoard:
     def __init__(self, regionSize = (3, 3), regionCount = (3, 3)):
         self.regionSize = regionSize
         self.regionCount = regionCount
         self.size = (regionSize[0] * regionCount[0], regionSize[1] * regionCount[1])
+        self.cellCount = self.size[0] * self.size[1]
+        self.filled = 0
         
         self.values = regionSize[0] * regionSize[1]
 
@@ -89,6 +135,9 @@ class SudokuBoard:
 
         return newBoard
 
+    def isSolved(self):
+        return self.filled == self.cellCount
+
     def __repr__(self):
         
         maxLength = len(str(self.values))
@@ -132,53 +181,83 @@ class SudokuBoard:
     def __setitem__(self, (x, y), value):
         self.cells[y][x].setValue(value)
 
-    def difficulty(self):
+    def difficulty(self, maxBranch = 3):
+        (total, count) = self.calcDifficulty(maxBranch)
+        if total < 0:
+            return -1.0
+        else:
+            return float(total) / count
 
-        sweep = self.logicalMoves(True, False)
-        exclude = self.logicalMoves(False, True)
-        diff = 50 - (2 * len(sweep)) - len(exclude)
+    def calcDifficulty(self, maxBranch):
+        if self.isSolved():
+            return (0, 0)
+        
+        if maxBranch < 0:
+            return (-1, 0)
+        
+        moves = self.logicalMoves(True, False).items()
+        if moves:
+            diff = 4 * len(moves)
+        else:
+            moves = self.logicalMoves(False, True).items()
+            diff = len(moves)
 
-        cell = None
-        value = None
-        if sweep:
-            keys = sweep.keys()
-            cell = keys[0]
-            value = sweep[cell]
-        elif exclude:
-            keys = exclude.keys()
-            cell = keys[0]
-            value = exclude[cell]
-
-        if cell:
+        for (cell, value) in moves:
             cell.setValue(value)
-            diff += self.difficulty()
+
+        if moves:
+            (total, count) = self.calcDifficulty(maxBranch)
+
+        for (cell, value) in moves:
             cell.setValue(None)
-            return diff
+            
+        if moves:
+            if total == -1:
+                return (-1, count + 1)
+            else:
+                return (total + diff, count + 1)
 
         nextCell = None
         nextPossible = None
-        
+
         for row in self.cells:
             for cell in row:
                 if not cell.value:
                     possible = cell.possibleValues()
                     if not possible:
                         # Dead end
-                        return 10
+                        return (-1, 0)
                     if (not nextCell) or (len(possible) < len(nextPossible)):
                         nextCell = cell
                         nextPossible = possible
 
         if not nextCell:
             # Solved
-            return 0
+            return (0, 1)
+        elif maxBranch <= 0:
+            return (-1, 0)
+
+        total = 0
+        count = 1
+
+        if len(nextPossible) - 1 > maxBranch:
+            nextPossible = nextPossible[:maxBranch + 1]
+            maxBranch = 0
+        else:
+            maxBranch -= len(nextPossible) - 1
 
         for value in nextPossible:
             nextCell.setValue(value)
-            diff += self.difficulty()
+            (nextTotal, nextCount) = self.calcDifficulty(maxBranch)
+            if (nextTotal != -1):
+                total += nextTotal
+            count += nextCount
             nextCell.setValue(None)
 
-        return diff
+        if count == 1:
+            return (-1, 1)
+        
+        return (total, count)
 
 
     def logicalMoves(self, sweep = True, exclude = True, maxCount = 0):
@@ -323,6 +402,11 @@ class SudokuCell:
         return value in self.possibleValues()
 
     def setValue(self, value):
+        if value and not self.value:
+            self.board.filled += 1
+        elif self.value and not value:
+            self.board.filled -= 1
+        
         for set in self.sets:
             if value and not self.value:
                 set.cachedIsAvailable[value - 1] = False
