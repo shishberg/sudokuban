@@ -4,7 +4,7 @@ import pygtk, gtk, pango
 from sudoku import *
 
 class Settings:
-    def __init__(self, filename):
+    def __init__(self, filename = None):
         self.filename = filename
 
         # Defaults
@@ -20,12 +20,16 @@ class Settings:
         self.fontPreset = pango.FontDescription('sans bold 18')
         self.fontUnset =  pango.FontDescription('sans 18')
 
-        # FIXME - load
+        # Load from file
+        self.load()
 
-        # Highlighting shades
+        self.update()
+
+    def update(self):
+        # Calculate highlighting shades
         self.highlightShade = {}
-        for row in (True, False):
-            for col in (True, False):
+        for col in (True, False):
+            for row in (True, False):
                 for reg in (True, False):
                     shade = gtk.gdk.Color(self.colourBackground.red,
                                           self.colourBackground.green,
@@ -45,9 +49,91 @@ class Settings:
                         shade.blue  = max(shade.blue  - 0xffff + self.colourRegion.blue,  0)
                     
                     self.highlightShade[(row, col, reg)] = shade
+
+    def colourToStr(self, colour):
+        return '#%04X%04X%04X' % (colour.red, colour.green, colour.blue)
+
+    def colourFromStr(self, string):
+        try:
+            return gtk.gdk.color_parse(string)
+        except:
+            return None
+
+    def load(self):
+        if not self.filename:
+            return False
+
+        try:
+            inFile = file(self.filename)
+
+            for line in inFile.readlines():
+                try:
+                    if line.startswith('#'):
+                        continue
+
+                    tokens = line.split('=', 1)
+                    if len(tokens) != 2:
+                        continue
+
+                    attrib = tokens[0].strip().lower()
+                    value = tokens[1].strip()
+
+                    if attrib.startswith('colour.'):
+                        value = self.colourFromStr(value)
+                        if not value:
+                            continue
+                        if attrib == 'colour.background':
+                            self.colourBackground = value
+                        elif attrib == 'colour.border':
+                            self.colourBorder = value
+                        elif attrib == 'colour.preset':
+                            self.colourPreset = value
+                        elif attrib == 'colour.unset':
+                            self.colourUnset = value
+                        elif attrib == 'colour.row':
+                            self.colourRow = value
+                        elif attrib == 'colour.column':
+                            self.colourColumn = value
+                        elif attrib == 'colour.region':
+                            self.colourRegion = value
+
+                    elif attrib.startswith('font.'):
+                        value = pango.FontDescription(value)
+                        if attrib == 'font.preset':
+                            self.fontPreset = value
+                        elif attrib == 'font.unset':
+                            self.fontUnset = value
+                except:
+                    continue
+            
+        except:
+            return False
+
         
     def save(self):
-        pass
+        if not self.filename:
+            return False
+        
+        try:
+            out = file(self.filename, 'w')
+        
+            print >> out, 'colour.background =', self.colourToStr(self.colourBackground)
+            print >> out, 'colour.border =', self.colourToStr(self.colourBorder)
+            print >> out, 'colour.preset =', self.colourToStr(self.colourPreset)
+            print >> out, 'colour.unset =', self.colourToStr(self.colourUnset)
+            print >> out, 'colour.row =', self.colourToStr(self.colourRow)
+            print >> out, 'colour.column =', self.colourToStr(self.colourColumn)
+            print >> out, 'colour.region =', self.colourToStr(self.colourRegion)
+            
+            print >> out, 'font.preset =', self.fontPreset.to_string()
+            print >> out, 'font.unset =', self.fontUnset.to_string()
+            
+            out.close()
+
+            return True
+        
+        except:
+            return False
 
 
 class BoardEntry(gtk.EventBox):
@@ -472,13 +558,18 @@ class ColourDialog(gtk.Dialog):
         self.oldBorder = settings.colourBorder
         self.oldPreset = settings.colourPreset
         self.oldUnset = settings.colourUnset
-        #self.oldRows = BoardEntry.
+        self.oldRow = settings.colourRow
+        self.oldColumn = settings.colourColumn
+        self.oldRegion = settings.colourRegion
 
         self.backgroundButton = self.createButton('Background', self.oldBackground)
         self.borderButton = self.createButton('Border', self.oldBorder)
         self.presetButton = self.createButton('Given numbers', self.oldPreset)
         self.unsetButton = self.createButton('Filled-in numbers', self.oldUnset)
-        
+        self.rowButton = self.createButton('Hatch row', self.oldRow)
+        self.columnButton = self.createButton('Hatch column', self.oldColumn)
+        self.regionButton = self.createButton('Hatch region', self.oldRegion)
+    
         self.vbox.add(self.table)
         self.connect('response', self.response)
         self.show()
@@ -509,15 +600,26 @@ class ColourDialog(gtk.Dialog):
             settings.colourPreset = newColour
         elif button is self.unsetButton:
             settings.colourUnset = newColour
+        elif button is self.rowButton:
+            settings.colourRow = newColour
+        elif button is self.columnButton:
+            settings.colourColumn = newColour
+        elif button is self.regionButton:
+            settings.colourRegion = newColour
 
+        settings.update()
         self.updateAll()
 
     def response(self, widget, data):
-        if data == gtk.RESPONSE_CANCEL:
+        if data == gtk.RESPONSE_CANCEL or data == gtk.RESPONSE_DELETE_EVENT:
             settings.colourBackground = self.oldBackground
             settings.colourBorder = self.oldBorder
             settings.colourPreset = self.oldPreset
             settings.colourUnset = self.oldUnset
+            settings.colourRow = self.oldRow
+            settings.colourColumn = self.oldColumn
+            settings.colourRegion = self.oldRegion
+            settings.update()
             self.updateAll()
 
         self.destroy()
@@ -576,7 +678,7 @@ class FontDialog(gtk.Dialog):
         self.updateAll()
         
     def response(self, widget, data):
-        if data == gtk.RESPONSE_CANCEL:
+        if data == gtk.RESPONSE_CANCEL or data == gtk.RESPONSE_CLOSE:
             settings.fontPreset = self.oldPreset
             settings.fontUnset = self.oldUnset
             self.updateAll()
@@ -702,8 +804,8 @@ class NewPuzzleDialog(gtk.Dialog):
 
 
 openWindows = []
-settings = Settings('~/.sudoku-sensei')
 newDialog = None
+settings = None
 
 def openDialog(widget = None):
     filedialog = gtk.FileSelection('Open')
@@ -739,10 +841,16 @@ def coloursDialog(widget = None):
     ColourDialog().show()
 
 def quit(widget = None):
+    settings.save()
     gtk.main_quit()
 
 
 if __name__ == '__main__':
+    try:
+        settings = Settings(os.path.join(os.environ['HOME'], '.sudokusensei'))
+    except:
+        settings = Settings()
+    
     args = sys.argv[1:]
 
     gtk.window_set_default_icon_from_file('images/icon.png')
