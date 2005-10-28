@@ -1086,7 +1086,7 @@ class NewPuzzleDialog(gtk.Dialog):
                 progress.show()
                 progress.update()
 
-                board = randomPuzzle(size, maxBranch, scanOnly, symmetrical,
+                board = randomPuzzle(size, maxBranch, symmetrical, scanOnly,
                                      progress.pulse, progress.setFraction, progress.cancelled)
 
                 cancelled = progress.isCancelled
