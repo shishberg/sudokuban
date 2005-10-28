@@ -3,6 +3,7 @@
         <menu action="File">
              <menuitem action="New"/>
              <menuitem action="Open"/>
+             <menuitem action="Duplicate"/>
              <separator/>
              <menuitem action="Save"/>
              <menuitem action="SaveAs"/>

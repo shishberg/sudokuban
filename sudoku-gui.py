@@ -40,6 +40,8 @@ tipNew = 'Create a new empty or random puzzle.'
 
 tipOpen = 'Load a puzzle from a file.'
 
+tipDuplicate = 'Create a copy of this puzzle.'
+
 tipSave = 'Save a puzzle to a file.'
 
 tipSaveAs = 'Save a puzzle to a new location.'
@@ -470,6 +472,7 @@ class SudokuGUI:
             ('File', None, '_File'),
             ('New', gtk.STOCK_NEW, '_New', '<Control>N', tipNew, self.newPuzzleDialog),
             ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', tipOpen, openDialog),
+            ('Duplicate', None, '_Duplicate', None, tipDuplicate, self.duplicate),
             ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', tipSave, self.saveFile),
             ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', tipSaveAs, self.saveAsDialog),
             ('Close', gtk.STOCK_CLOSE, '_Close', '<Control>W', tipClose, self.destroy),
@@ -667,6 +670,9 @@ class SudokuGUI:
 
             self.dirty = True
             self.updateAll()
+
+    def duplicate(self, widget):
+        gui = SudokuGUI(self.board.copy(), dirty = True)
 
     def newPuzzleDialog(self, widget):
         newPuzzleDialog(widget, self)
