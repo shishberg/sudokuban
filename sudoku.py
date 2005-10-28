@@ -79,6 +79,8 @@ class SudokuBoard:
     def __repr__(self):
         
         maxLength = len(str(self.values[-1]))
+        if maxLength > 1:
+            maxLength += 1
         cellPrint = '%' + str(maxLength) + 'd'
         emptyCell = ' ' * maxLength
 
