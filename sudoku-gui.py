@@ -715,9 +715,7 @@ class SudokuGUI:
     def saveFile(self, widget = None):
         errorMessage = None
         try:
-            out = file(self.filename, 'w')
-            out.write(str(self.board))
-            out.close()
+            writeSudoku(self.board, self.filename)
             self.dirty = False
         except IOError, error:
             errorMessage = error.strerror + ': ' + error.filename
