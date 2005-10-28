@@ -21,8 +21,8 @@ class BoardEntry(gtk.Entry):
             self.set_text('')
 
 class SudokuGUI:
-    presetFont = pango.FontDescription('sans bold 16')
-    unsetFont = pango.FontDescription('sans normal 16')
+    presetFont = pango.FontDescription('sans bold 18')
+    unsetFont = pango.FontDescription('sans normal 18')
     unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)
     
     def __init__(self, board):
@@ -107,8 +107,10 @@ class SudokuGUI:
 
     def numberMenu(self, widget, event, cell):
         if event.button == 3:
+            values = [0] + cell.possibleValues()
+            
             menu = gtk.Menu()
-            for value in range(self.board.values + 1):
+            for value in values:
                 if value:
                     text = str(value)
                 else:
