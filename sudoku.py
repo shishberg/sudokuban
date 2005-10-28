@@ -42,44 +42,105 @@ def readSudoku(filename):
     return board
 
 
-def randomCompleted(board = None):
-    if not board:
-        board = SudokuBoard()
+def randomCompleted(size = 3):
+    board = SudokuBoard((size, size), (size, size))
+    return board.solve(maxCount = 1, shuffle = True)[0]
+        
 
-    solved = None
+def randomPuzzle(maxBranch = 3, minCount = 20, maxCount = 30,
+                 minDiff = 20.0, maxDiff = 40.0, symmetrical = True,
+                 size = 3, reinsert = 0.1, bailout = 100):
 
-    logical = board.logicalMoves().items()
-    for (cell, value) in logical:
-        cell.setValue(value)
+    completed = randomCompleted(size)
 
-    if board.isSolved():
-        solved = board.copy()
-    else:
-        while True:
+    board = completed.copy()
+    nothingCount = 0
+    while board.filled > maxCount:
+        revert = []
+        step = random.randint(1, maxCount - minCount)
+        while len(revert) < step:
             x = random.randint(0, board.size[0] - 1)
             y = random.randint(0, board.size[1] - 1)
             cell = board[x, y]
             if not cell.value:
-                break
-
-        possible = cell.possibleValues()
-        random.shuffle(possible)
-        for n in possible:
-            cell.setValue(n)
-            solved = randomCompleted(board)
+                continue
+            revert.append((cell, cell.value))
             cell.setValue(None)
-            if solved:
-                break
+            if symmetrical:
+                cell2 = board[board.size[0] - x - 1, board.size[1] - y - 1]
+                revert.append((cell2, cell2.value))
+                cell2.setValue(None)
 
-    for (cell, value) in logical:
+        if board.difficulty(maxBranch) == None or board.solve(True, 2) != 1:
+            nothingCount += 1
+            if nothingCount >= bailout:
+                return None
+            for (cell, value) in revert:
+                cell.setValue(value)
+        else:
+            nothingCount = 0
+
+        # Reinsert some random values to avoid getting stuck
+        while random.random() < reinsert:
+            x = random.randint(0, board.size[0] - 1)
+            y = random.randint(0, board.size[1] - 1)
+            cell = board[x, y]
+            if not cell.value:
+                board[x, y] = completed[x, y].value
+                if symmetrical:
+                    x = board.size[0] - x - 1
+                    y = board.size[1] - y - 1
+                    board[x, y] = completed[x, y].value
+
+
+    for row in board.cells:
+        for cell in row:
+            if cell.value:
+                cell.state = CELL_PRESET
+    
+    return board
+
+
+def randomPuzzleSlow(board = None, maxBranch = 0, minCount = 20, maxCount = 30,
+                     minDiff = 20.0, maxDiff = 40.0):
+
+    if not board:
+        board = SudokuBoard()
+
+    if minCount <= board.filled and board.filled <= maxCount:
+        diff = board.difficulty(maxBranch)
+        if minDiff <= diff and diff <= maxDiff:
+            solutions = board.solve(True, 2)
+            if solutions == 1:
+                return board.copy()
+    
+    if board.filled >= maxCount:
+        return None
+
+    if not board.solve(True, 1):
+        return None
+
+    while True:
+        x = random.randint(0, board.size[0] - 1)
+        y = random.randint(0, board.size[1] - 1)
+        cell = board[x, y]
+        if not cell.value:
+            break
+
+    possible = cell.possibleValues()
+    if not possible:
+        return None
+    
+    random.shuffle(possible)
+    for value in possible:
+        cell.setValue(value)
+        puzzle = randomPuzzleSlow(board, maxBranch, minCount, maxCount,
+                                  minDiff, maxDiff)
         cell.setValue(None)
+        if puzzle:
+            puzzle
 
-    return solved
-
-    
-    
-
-    
+    return None
 
 
 class SudokuBoard:
@@ -184,7 +245,9 @@ class SudokuBoard:
     def difficulty(self, maxBranch = 3):
         (total, count) = self.calcDifficulty(maxBranch)
         if total < 0:
-            return -1.0
+            return None
+        elif count == 0:
+            return 0.0
         else:
             return float(total) / count
 
@@ -283,7 +346,7 @@ class SudokuBoard:
 
         return moves
 
-    def solve(self, countOnly = False, maxCount = None):
+    def solve(self, countOnly = False, maxCount = None, shuffle = False):
         if (maxCount != None) and (maxCount <= 0):
             if countOnly:
                 return 0
@@ -304,7 +367,16 @@ class SudokuBoard:
         nextCell = None
         nextPossible = None
 
-        for row in self.cells:
+        if shuffle:
+            rows = self.cells[:]
+            random.shuffle(rows)
+        else:
+            rows = self.cells
+
+        for row in rows:
+            if shuffle:
+                row = row[:]
+                random.shuffle(row)
             for cell in row:
                 if not cell.value:
                     possible = cell.possibleValues()
@@ -333,10 +405,13 @@ class SudokuBoard:
             solutions = 0
         else:
             solutions = []
+
+        if shuffle:
+            random.shuffle(nextPossible)
             
         for value in nextPossible:
             nextCell.setValue(value)
-            solutions += self.solve(countOnly, maxCount)
+            solutions += self.solve(countOnly, maxCount, shuffle)
             nextCell.setValue(None)
 
             if maxCount != None:
