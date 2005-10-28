@@ -13,6 +13,29 @@ class SudokuGUI:
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.connect('destroy', self.destroy)
 
+        vbox = gtk.VBox(False, 0)
+        self.window.add(vbox)
+        vbox.show()
+
+        self.menubar = gtk.MenuBar()
+        vbox.add(self.menubar)
+        self.menubar.show()
+
+        fileMenu = gtk.MenuItem('File')
+        fileMenu.show()
+        self.menubar.append(fileMenu)
+
+        hintsMenuItem = gtk.MenuItem('Hints')
+        hintsMenuItem.show()
+        self.menubar.append(hintsMenuItem)
+
+        hintsMenu = gtk.Menu()
+        hintsMenuItem.set_submenu(hintsMenu)
+        
+        menuSolve = gtk.MenuItem('Solve')
+        menuSolve.show()
+        hintsMenu.append(menuSolve)
+
         self.board = board
 
         regions = self.board.regionCount
@@ -60,7 +83,7 @@ class SudokuGUI:
                                   regionY, regionY + 1)
                 regionTable.show()
 
-        self.window.add(self.table)
+        vbox.add(self.table)
         self.table.show()
         self.window.show()
 
