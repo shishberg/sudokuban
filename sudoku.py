@@ -122,7 +122,7 @@ class SudokuBoard:
                         else:
                             board += ' ' + emptyCell
                 board += '|\n'
-        board += divider + '\n'
+        board += divider
 
         return board
 

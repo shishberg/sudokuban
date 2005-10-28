@@ -83,14 +83,13 @@ class SudokuGUI:
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.connect('destroy', self.destroy)
 
-        self.filename = filename
-        self.setTitle()
-
         self.vbox = gtk.VBox(False, 0)
         self.window.add(self.vbox)
         self.vbox.show()
 
         self.createActions()
+
+        self.setFilename(filename)
 
         self.board = board
 
@@ -134,6 +133,11 @@ class SudokuGUI:
         self.table.show()
         self.window.show()
 
+    def setFilename(self, filename):
+        self.filename = filename
+        self.setTitle()
+        self.actionGroup.get_action('Save').set_sensitive(filename != None)
+
     def setTitle(self):
         title = 'Sudoku Sensei'
         if self.filename:
@@ -159,7 +163,9 @@ class SudokuGUI:
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
         self.actionGroup.add_actions([('File', None, '_File'),
                                       ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', None, openDialog),
-                                      ('Quit', gtk.STOCK_QUIT, '_Quit', None, None, self.destroy),
+                                      ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', None, self.saveFile),
+                                      ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', None, self.saveAsDialog),
+                                      ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', None, self.destroy),
                                       ('Hints', None, '_Hints'),
                                       ('Solve', None, '_Solve', None, None, self.solve)
                                       ])
@@ -229,6 +235,26 @@ class SudokuGUI:
             for entry in self.entries:
                 entry.update()
 
+    def saveAsDialog(self, widget):
+        filedialog = gtk.FileSelection('Save As')
+        filedialog.ok_button.connect_object('clicked', self.saveFromDialog, filedialog)
+        filedialog.cancel_button.connect_object('clicked', destroyFileDialog, filedialog)
+        filedialog.show()
+
+    def saveFromDialog(self, filedialog):
+        filename = filedialog.get_filename()
+        if filename:
+            self.setFilename(filename)
+            try:
+                self.saveFile()
+            finally:
+                filedialog.destroy()
+
+    def saveFile(self, widget = None):
+        out = file(self.filename, 'w')
+        out.write(str(self.board))
+        out.close()
+
     def destroy(self, widget, data = None):
         if self in openWindows:
             openWindows.remove(self)
@@ -246,7 +272,7 @@ openWindows = []
 
 
 def openDialog(widget = None):
-    filedialog = gtk.FileSelection('Open Sudoku puzzle')
+    filedialog = gtk.FileSelection('Open')
     filedialog.ok_button.connect_object('clicked', loadFromDialog, filedialog)
     filedialog.cancel_button.connect_object('clicked', destroyFileDialog, filedialog)
     filedialog.show()
@@ -263,8 +289,8 @@ def loadFromDialog(filedialog):
 def destroyFileDialog(widget):
     widget.destroy()
 
-    if not openWindows:
-        gtk.main_quit()
+    #if not openWindows:
+    #    gtk.main_quit()
 
     
 if __name__ == '__main__':

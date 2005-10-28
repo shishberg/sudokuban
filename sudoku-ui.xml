@@ -2,6 +2,8 @@
     <menubar name="MenuBar">
         <menu action="File">
              <menuitem action="Open"/>
+             <menuitem action="Save"/>
+             <menuitem action="SaveAs"/>
              <menuitem action="Quit"/>
         </menu>
         <menu action="Hints">
