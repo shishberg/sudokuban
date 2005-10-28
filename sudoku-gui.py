@@ -201,7 +201,14 @@ class BoardEntry(gtk.EventBox):
             self.set_size_request(requisition.width, requisition.width)
 
     def setValue(self, value):
+        if (not self.gui.preset) and (self.cell.value) and (self.cell.state != CELL_UNSET):
+            return
+        
         self.cell.setValue(value)
+        if self.gui.preset:
+            self.cell.state = CELL_PRESET
+        else:
+            self.cell.state = CELL_UNSET
         if value:
             self.gui.selectedValue = value
         
@@ -219,6 +226,7 @@ class SudokuGUI:
         self.selectedValue = 0
         self.exclude = False
         self.digitKeys = ''
+        self.preset = False
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.connect('destroy', self.destroy)
@@ -285,7 +293,7 @@ class SudokuGUI:
                 self.digitKeys += keyStr
                 while self.digitKeys:
                     value = int(self.digitKeys)
-                    if 0 < value and value <= self.board.values and \
+                    if 0 <= value and value <= self.board.values and \
                        (not self.exclude or value in self.selection.cell.possibleValues()):
                         self.setEntry(self.selection, value)
                         return True
@@ -365,6 +373,14 @@ class SudokuGUI:
         uimanager = gtk.UIManager()
         self.window.add_accel_group(uimanager.get_accel_group())
 
+        # Custom icons
+        self.iconFactory = gtk.IconFactory()
+        self.registerIcon('sudoku-solve', 'images/solve.png')
+        self.registerIcon('sudoku-highlight', 'images/highlight.png')
+        self.registerIcon('sudoku-exclude', 'images/exclude.png')
+        self.registerIcon('sudoku-presets', 'images/presets.png')
+        self.iconFactory.add_default()
+
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
         self.actionGroup.add_actions([('File', None, '_File'),
                                       ('New', gtk.STOCK_NEW, '_New', '<Control>N', None, newPuzzleDialog),
@@ -381,10 +397,11 @@ class SudokuGUI:
                                       ('CheckSolvable', None, 'Check _Solvable', None, None, self.checkSolvable),
                                       ('Difficulty', None, '_Difficulty', None, None, self.difficulty),
                                       ('Hints', None, '_Hints'),
-                                      ('Solve', None, '_Solve', None, None, self.solve)
+                                      ('Solve', 'sudoku-solve', '_Solve', None, None, self.solve)
                                       ])
-        self.actionGroup.add_toggle_actions([('Scan', None, '_Highlight', None, None, self.toggleScanHighlight),
-                                             ('Exclude', None, '_Restrict', None, None, self.toggleExclude)
+        self.actionGroup.add_toggle_actions([('Presets', 'sudoku-presets', '_Presets', None, None, self.togglePreset),
+                                             ('Highlight', 'sudoku-highlight', '_Highlight', None, None, self.toggleScanHighlight),
+                                             ('Exclude', 'sudoku-exclude', '_Restrict', None, None, self.toggleExclude)
                                              ])
 
         uimanager.insert_action_group(self.actionGroup, 0)
@@ -394,6 +411,14 @@ class SudokuGUI:
                              False, True, 0)
         self.vbox.pack_start(uimanager.get_widget('/Toolbar'),
                              False, True, 0)
+
+    def registerIcon(self, id, filename):
+        try:
+            pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
+            iconset = gtk.IconSet(pixbuf)
+            self.iconFactory.add(id, iconset)
+        except:
+            pass
 
     def toggleScanHighlight(self, action):
         self.scanHighlight = action.get_active()
@@ -406,6 +431,9 @@ class SudokuGUI:
     def toggleExclude(self, action):
         self.exclude = action.get_active()
 
+    def togglePreset(self, action):
+        self.preset = action.get_active()
+
     def clickInCell(self, widget, event, cell):
         if event.button == 1:
             self.setSelection(widget)
@@ -413,6 +441,9 @@ class SudokuGUI:
             return self.numberMenu(widget, cell, event.button, event.time)
 
     def numberMenu(self, widget, cell, button = 0, eventTime = 0):
+        if (not self.preset) and (cell.value) and (cell.state == CELL_PRESET):
+            return False
+        
         if self.exclude:
             values = [0] + cell.possibleValues(True)
         else:
@@ -654,7 +685,7 @@ class ColourDialog(gtk.Dialog):
 
         self.backgroundButton = self.createButton('Background', self.oldBackground)
         self.borderButton = self.createButton('Border', self.oldBorder)
-        self.presetButton = self.createButton('Given numbers', self.oldPreset)
+        self.presetButton = self.createButton('Preset numbers', self.oldPreset)
         self.unsetButton = self.createButton('Filled-in numbers', self.oldUnset)
         self.rowButton = self.createButton('Hatch row', self.oldRow)
         self.columnButton = self.createButton('Hatch column', self.oldColumn)
@@ -736,7 +767,7 @@ class FontDialog(gtk.Dialog):
         self.oldPreset = settings.fontPreset
         self.oldUnset = settings.fontUnset
 
-        self.presetButton = self.createButton('Given numbers', self.oldPreset)
+        self.presetButton = self.createButton('Preset numbers', self.oldPreset)
         self.unsetButton = self.createButton('Filled-in numbers', self.oldUnset)
         
         self.vbox.add(self.table)

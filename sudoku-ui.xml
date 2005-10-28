@@ -17,9 +17,10 @@
         <menu action="Puzzle">
              <menu action="Hints">
                  <menuitem action="Solve"/>
-                 <menuitem action="Scan"/>
+                 <menuitem action="Highlight"/>
                  <menuitem action="Exclude"/>
              </menu>
+             <menuitem action="Presets"/>
              <menuitem action="CheckValid"/>
              <menuitem action="CheckSolvable"/>
              <menuitem action="Difficulty"/>
@@ -27,11 +28,9 @@
     </menubar>
     <toolbar name="Toolbar">
       <toolitem action="New"/>
-      <toolitem action="Open"/>
-      <toolitem action="Save"/>
-      <separator/>
+      <toolitem action="Presets"/>
       <toolitem action="Solve"/>
-      <toolitem action="Scan"/>
+      <toolitem action="Highlight"/>
       <toolitem action="Exclude"/>
       <separator/>
     </toolbar>
