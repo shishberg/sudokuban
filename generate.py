@@ -22,7 +22,7 @@ if __name__ == '__main__':
         
         print size, maxBranch, bailout
         board = randomPuzzle(size=size, maxBranch=maxBranch,
-                             bailout=bailout, output=True)
+                             bailout=bailout, output=False)
         n = 1
         while True:
             fn = filename % (size[0], size[1], n)
