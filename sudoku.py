@@ -110,10 +110,12 @@ class SudokuBoard:
         cell = None
         value = None
         if sweep:
-            cell = sweep.keys()[0]
+            keys = sweep.keys()
+            cell = keys[0]
             value = sweep[cell]
         elif exclude:
-            cell = exclude.keys()[0]
+            keys = exclude.keys()
+            cell = keys[0]
             value = exclude[cell]
 
         if cell:
@@ -130,7 +132,8 @@ class SudokuBoard:
                 if not cell.value:
                     possible = cell.possibleValues()
                     if not possible:
-                        return 10 # Dead end
+                        # Dead end
+                        return 10
                     if (not nextCell) or (len(possible) < len(nextPossible)):
                         nextCell = cell
                         nextPossible = possible
@@ -227,6 +230,15 @@ class SudokuCell:
 
     def __repr__(self):
         return str(self.coord)
+
+    def __hash__(self):
+        return self.coord[0] | (self.coord[1] << 16)
+
+    def __cmp__(self, other):
+        # Note - this won't make much sense if the
+        # cells are from different boards. You have
+        # been warned.
+        return cmp(self.coord, other.coord)
 
     def possibleValues(self):
         possible = self.board.values[:]
@@ -348,3 +360,4 @@ s2 = readSudoku('moderate.txt')
 s3 = readSudoku('medium.txt')
 s4 = readSudoku('challenging.txt')
 s5 = readSudoku('tough.txt')
+s6 = readSudoku('deadend.txt')
