@@ -1,18 +1,58 @@
 class Sudoku:
     def __init__(self, other = None):
+        self.valid = True
         self.data = []
         if other:
-            for n in range(0, 9):
-                self.data.append(other.data[n][:])
+            for x in range(0, 9):
+                row = []
+                self.data.append(row)
+                for y in range(0, 9):
+                    row.append(other.data[x][y][:])
         else:
-            for n in range(0, 9):
-                self.data.append([0] * 9)
+            for x in range(0, 9):
+                row = []
+                self.data.append(row)
+                for y in range(0, 9):
+                    row.append(range(1, 10))
 
     def __getitem__(self, (x, y)):
-        return self.data[x][y]
+        item = self.data[x][y]
+        if len(item) == 1:
+            return item[0]
+        else:
+            return None
 
     def __setitem__(self, (x, y), num):
-        self.data[x][y] = num
+        item = self.data[x][y]
+        if not num in item:
+            self.valid = False
+        else:
+            self.data[x][y] = [num]
+            for row in range(0, 9):
+                if row != y:
+                    self.ruleOut((x, row), num)
+            for col in range(0, 9):
+                if col != x:
+                    self.ruleOut((col, y), num)
+
+            startX = (x / 3) * 3
+            startY = (y / 3) * 3
+            for col in range(startX, startX + 3):
+                for row in range(startY, startY + 3):
+                    if col != x or row != y:
+                        self.ruleOut((col, row), num)
+
+    def ruleOut(self, (x, y), num):
+        item = self.data[x][y]
+        if num in item:
+            item.remove(num)
+            if len(item) == 0:
+                self.valid = False
+            elif len(item) == 1:
+                self[x, y] = item[0]
+
+    def possible(self, (x, y)):
+        return self.data[x][y]
 
     def row(self, n):
         list = []
@@ -54,41 +94,24 @@ class Sudoku:
         return string
 
     def solve(self):
+        if not self.valid:
+            return []
+        
         mostConstrained = None
-        mostConsValid = None
+        leastPossible = None
 
         for y in range(0, 9):
             for x in range(0, 9):
-                val = self[x, y]
-                if not val:
-                    # Start with everything valid
-                    valid = range(1, 10)
-                    
-                    # Then cancel some out
-                    curRow  = self.row(y)
-                    curCol  = self.col(x)
-                    curGrid = self.grid((x/3, y/3))
-                    
-                    for n in curRow:
-                        if n in valid:
-                            valid.remove(n)
-                            
-                    for n in curCol:
-                        if n in valid:
-                            valid.remove(n)
-                            
-                    for n in curGrid:
-                        if n in valid:
-                            valid.remove(n)
-
-                    # If none left, configuration is invalid
-                    if not valid:
-                        return []
-
+                poss = self.possible((x, y))
+                                
+                if len(poss) > 1:
                     # If most constrained so far, cache it
-                    if (not mostConstrained) or len(mostConsValid) > len(valid):
+                    if (not mostConstrained) or len(leastPossible) > len(poss):
                         mostConstrained = (x, y)
-                        mostConsValid = valid
+                        leastPossible = poss
+
+                if not self.valid:
+                    return []
 
         if not mostConstrained:
             # Solution found
@@ -96,40 +119,43 @@ class Sudoku:
         
         # Follow branches
         solutions = []
-        for n in mostConsValid:
+        for n in leastPossible:
             branch = Sudoku(self)
             branch[mostConstrained] = n
-            solutions = solutions + branch.solve()
+            if branch.valid:
+                solutions = solutions + branch.solve()
 
         return solutions
                         
+def sampleSudoku():
+    sample = Sudoku()
+    sample[3,0] = 9
+    sample[5,0] = 7
+    sample[6,0] = 3
+    sample[8,0] = 8
+    sample[2,1] = 8
+    sample[4,1] = 2
+    sample[0,2] = 3
+    sample[5,2] = 8
+    sample[7,2] = 4
+    sample[0,3] = 2
+    sample[1,3] = 3
+    sample[4,3] = 7
+    sample[2,4] = 7
+    sample[3,4] = 1
+    sample[5,4] = 4
+    sample[6,4] = 9
+    sample[4,5] = 6
+    sample[7,5] = 7
+    sample[8,5] = 1
+    sample[1,6] = 5
+    sample[3,6] = 7
+    sample[8,6] = 3
+    sample[4,7] = 9
+    sample[6,7] = 7
+    sample[0,8] = 6
+    sample[2,8] = 9
+    sample[3,8] = 8
+    sample[5,8] = 5
 
-#sample = Sudoku()
-#sample[3,0] = 9
-#sample[5,0] = 7
-#sample[6,0] = 3
-#sample[8,0] = 8
-#sample[2,1] = 8
-#sample[4,1] = 2
-#sample[0,2] = 3
-#sample[5,2] = 8
-#sample[7,2] = 4
-#sample[0,3] = 2
-#sample[1,3] = 3
-#sample[4,3] = 7
-#sample[2,4] = 7
-#sample[3,4] = 1
-#sample[5,4] = 4
-#sample[6,4] = 9
-#sample[4,5] = 6
-#sample[7,5] = 7
-#sample[8,5] = 1
-#sample[1,6] = 5
-#sample[3,6] = 7
-#sample[8,6] = 3
-#sample[4,7] = 9
-#sample[6,7] = 7
-#sample[0,8] = 6
-#sample[2,8] = 9
-#sample[3,8] = 8
-#sample[5,8] = 5
+    return sample
