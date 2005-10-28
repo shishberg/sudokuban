@@ -1,8 +1,9 @@
-import pygtk
-import gtk
-import pango
+import os
+import pygtk, gtk, pango
 
 from sudoku import *
+
+openWindows = []
 
 class BoardEntry(gtk.Entry):
     def __init__(self, max, cell):
@@ -26,9 +27,14 @@ class SudokuGUI:
     unsetFont = pango.FontDescription('sans normal 18')
     unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)
     
-    def __init__(self, board):
+    def __init__(self, board, filename = None):
+        openWindows.append(self)
+
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.connect('destroy', self.destroy)
+
+        self.filename = filename
+        self.setTitle()
 
         self.vbox = gtk.VBox(False, 0)
         self.window.add(self.vbox)
@@ -87,6 +93,14 @@ class SudokuGUI:
         self.vbox.add(self.table)
         self.table.show()
         self.window.show()
+
+
+    def setTitle(self):
+        title = 'Sudoku Sensei'
+        if self.filename:
+            title += ' - ' + os.path.basename(self.filename)
+
+        self.window.set_title(title)
 
 
     def createActions(self):
@@ -156,13 +170,21 @@ class SudokuGUI:
         self.filedialog.show()
 
     def loadFromDialog(self, widget):
-        print self.filedialog.get_filename()
+        filename = self.filedialog.get_filename()
+        
         self.filedialog.destroy()
 
+        newGui = SudokuGUI(readSudoku(filename), filename)
+
     def destroy(self, widget, data = None):
-        gtk.main_quit()
+        if self in openWindows:
+            openWindows.remove(self)
+            
+        if openWindows:
+            self.window.destroy()
+        else:
+            gtk.main_quit()
 
 if __name__ == '__main__':
     gui = SudokuGUI(readSudoku('sample.txt'))
     gui.main()
-    
