@@ -25,13 +25,15 @@
              <menuitem action="CheckSolvable"/>
              <menuitem action="Difficulty"/>
         </menu>
+        <menu action="Help">
+             <menuitem action="About"/>
+        </menu>
     </menubar>
     <toolbar name="Toolbar">
-      <toolitem action="New"/>
-      <toolitem action="Presets"/>
-      <toolitem action="Highlight"/>
-      <toolitem action="Exclude"/>
-      <toolitem action="Solve"/>
-      <separator/>
+         <toolitem action="New"/>
+         <toolitem action="Presets"/>
+         <toolitem action="Highlight"/>
+         <toolitem action="Exclude"/>
+         <toolitem action="Solve"/>
     </toolbar>
 </ui>

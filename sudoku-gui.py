@@ -466,27 +466,37 @@ class SudokuGUI:
         self.iconFactory.add_default()
 
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
-        self.actionGroup.add_actions([('File', None, '_File'),
-                                      ('New', gtk.STOCK_NEW, '_New', '<Control>N', tipNew, self.newPuzzleDialog),
-                                      ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', tipOpen, openDialog),
-                                      ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', tipSave, self.saveFile),
-                                      ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', tipSaveAs, self.saveAsDialog),
-                                      ('Close', gtk.STOCK_CLOSE, '_Close', '<Control>W', tipClose, self.destroy),
-                                      ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', tipQuit, closeAll),
-                                      ('Settings', None, '_Settings'),
-                                      ('Fonts', gtk.STOCK_SELECT_FONT, '_Fonts', None, tipFonts, fontsDialog),
-                                      ('Colours', gtk.STOCK_SELECT_COLOR, '_Colours', None, tipColours, coloursDialog),
-                                      ('Puzzle', None, '_Puzzle'),
-                                      ('CheckValid', None, 'Check _Valid', None, tipCheckValid, self.checkValid),
-                                      ('CheckSolvable', None, 'Check _Solvable', None, tipCheckSolvable, self.checkSolvable),
-                                      ('Difficulty', None, '_Difficulty', None, tipDifficulty, self.difficulty),
-                                      ('Hints', None, '_Hints'),
-                                      ('Solve', 'sudoku-solve', '_Solve', None, tipSolve, self.solve)
-                                      ])
-        self.actionGroup.add_toggle_actions([('Presets', 'sudoku-presets', '_Presets', None, tipPresets, self.togglePreset),
-                                             ('Highlight', 'sudoku-highlight', '_Highlight', None, tipHighlight, self.toggleScanHighlight),
-                                             ('Exclude', 'sudoku-exclude', '_Restrict', None, tipExclude, self.toggleExclude)
-                                             ])
+        self.actionGroup.add_actions([
+            ('File', None, '_File'),
+            ('New', gtk.STOCK_NEW, '_New', '<Control>N', tipNew, self.newPuzzleDialog),
+            ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', tipOpen, openDialog),
+            ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', tipSave, self.saveFile),
+            ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', tipSaveAs, self.saveAsDialog),
+            ('Close', gtk.STOCK_CLOSE, '_Close', '<Control>W', tipClose, self.destroy),
+            ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', tipQuit, closeAll),
+            ('Settings', None, '_Settings'),
+            ('Fonts', gtk.STOCK_SELECT_FONT, '_Fonts', None, tipFonts, fontsDialog),
+            ('Colours', gtk.STOCK_SELECT_COLOR, '_Colours', None, tipColours, coloursDialog),
+            ('Puzzle', None, '_Puzzle'),
+            ('CheckValid', None, 'Check _Valid', None, tipCheckValid, self.checkValid),
+            ('CheckSolvable', None, 'Check _Solvable', None, tipCheckSolvable, self.checkSolvable),
+            ('Difficulty', None, '_Difficulty', None, tipDifficulty, self.difficulty),
+            ('Hints', None, '_Hints'),
+            ('Solve', 'sudoku-solve', '_Solve', None, tipSolve, self.solve)
+            ])
+        self.actionGroup.add_toggle_actions([
+            ('Presets', 'sudoku-presets', '_Presets', None, tipPresets, self.togglePreset),
+            ('Highlight', 'sudoku-highlight', '_Highlight', None, tipHighlight, self.toggleScanHighlight),
+            ('Exclude', 'sudoku-exclude', '_Restrict', None, tipExclude, self.toggleExclude)
+            ])
+
+        try:
+            self.actionGroup.add_actions([
+                ('Help', None, '_Help'),
+                ('About', gtk.STOCK_ABOUT, '_About Sudoku Sensei', None, None, aboutDialog)
+                ])
+        except:
+            pass
 
         uimanager.insert_action_group(self.actionGroup, 0)
 
@@ -1129,6 +1139,51 @@ def fontsDialog(widget = None):
 
 def coloursDialog(widget = None):
     ColourDialog().show()
+
+def aboutDialog(widget = None):
+    try:
+        dialog = gtk.AboutDialog()
+        dialog.set_name('Sudoku Sensei')
+        dialog.set_version('1.0')
+        dialog.set_copyright('Copyright (C) David McLeish 2005')
+        dialog.set_website('http://rightside.fissure.org/sudoku/')
+        dialog.set_logo(gtk.gdk.pixbuf_new_from_file('images/icon.png'))
+
+        # Read license text
+        licenseText = '''This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+
+
+'''
+
+        try:
+            licenseFile = open('COPYING')
+            for line in licenseFile.readlines():
+                licenseText += line
+            licenseFile.close()
+        except:
+            pass
+
+        dialog.set_license(licenseText)
+
+        dialog.set_modal(True)
+        dialog.connect('response', destroyDialog)
+        dialog.show()
+        
+    except:
+        pass
 
 def closeAll(widget = None):
     for window in openWindows:
