@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #
 # sudoku-gui.py - GUI for Sudoku Sensei.
 #
