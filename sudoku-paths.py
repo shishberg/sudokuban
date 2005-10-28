@@ -119,8 +119,10 @@ class Sudoku:
 
         col = self.availCol[x][num-1]
         if isinstance(col, list) and y in col:
-            #print 'col', x, y, num
             col.remove(y)
+            #if num == 6:
+            #    print 'col', x, y, num
+            #    print col
             if len(col) == 0:
                 self.valid = 0
 
@@ -231,25 +233,26 @@ class Sudoku:
             for y in range(9):
                 item = self.data[x][y]
                 if isinstance(item, list) and len(item) == 1:
-                    next.append(((x, y), item[0]))
+                    next.append(((x, y), item[0], 'dat'))
 
                 item = self.availCol[x][y]
                 if isinstance(item, list) and len(item) == 1:
-                    next.append(((x, item[0]), y))
+                    #print 'col', x, y+1, item
+                    next.append(((x, item[0]), y+1, 'col'))
 
                 item = self.availRow[x][y]
                 if isinstance(item, list) and len(item) == 1:
-                    next.append(((item[0], x), y))
+                    next.append(((item[0], x), y+1, 'row'))
 
                 item = self.availBox[x][y]
                 if isinstance(item, list) and len(item) == 1:
                     xPos = (x % 3) * 3 + (item[0] % 3)
                     yPos = (x / 3) * 3 + (item[0] / 3)
-                    next.append(((xPos, yPos), y))
+                    next.append(((xPos, yPos), y+1, 'box'))
 
         if evaluate:
             nextBoards = []
-            for ((x, y), n) in next:
+            for ((x, y), n, descr) in next:
                 s = Sudoku(self)
                 s[x, y] = n
                 nextBoards.append(s)
