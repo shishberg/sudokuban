@@ -78,39 +78,39 @@ def randomPuzzleSystematic(size = (3, 3), maxBranch = 0,
     else:
         cells = range(width * width)
 
-    while True:
-        removed = 0
-        random.shuffle(cells)
+    random.shuffle(cells)
 
-        for n in cells:
-            x = n % width
-            y = n / width
+    for n in cells:
+        x = n % width
+        y = n / width
 
-            cell = board[x, y]
-            value = cell.value
-            if not value:
-                continue
-            cell.setValue(None)
+        cell = board[x, y]
+        value = cell.value
+        if not value:
+            continue
+        cell.setValue(None)
 
-            if symmetrical:
-                x2 = width - x - 1
-                y2 = width - y - 1
-                if x2 != x or y2 != y:
-                    cell2 = board[x2, y2]
-                    value2 = cell2.value
-                    cell2.setValue(None)
-                else:
-                    cell2 = None
-
-            if board.difficulty(maxBranch) == None or board.solve(True, 2) != 1:
-                cell.setValue(value)
-                if symmetrical and cell2:
-                    cell2.setValue(value2)
+        if symmetrical:
+            x2 = width - x - 1
+            y2 = width - y - 1
+            if x2 != x or y2 != y:
+                cell2 = board[x2, y2]
+                value2 = cell2.value
+                cell2.setValue(None)
             else:
-                removed += 1
+                cell2 = None
 
-        if not removed:
-            return board
+        if board.difficulty(maxBranch) == None or board.solve(True, 2) != 1:
+            cell.setValue(value)
+            if symmetrical and cell2:
+                cell2.setValue(value2)
+
+    for row in board.cells:
+        for cell in row:
+            if cell.value:
+                cell.state = CELL_PRESET
+    
+    return board
             
 
 class SudokuBoard:
