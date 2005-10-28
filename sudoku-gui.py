@@ -22,7 +22,7 @@ class SudokuGUI:
         self.table.set_row_spacings(5)
         self.table.set_col_spacings(5)
         self.window.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0x3fff, 0x3fff, 0x3fff))
-        
+
         for regionY in range(regions[1]):
             for regionX in range(regions[0]):
                 regionTable = gtk.Table(regionSize[0], regionSize[1], True)
@@ -49,6 +49,8 @@ class SudokuGUI:
                             entry.modify_font(SudokuGUI.unsetFont)
                             entry.modify_text(gtk.STATE_NORMAL, SudokuGUI.unsetColour)
 
+                        entry.connect("event", self.numberMenu, cell);
+
                         regionTable.attach(entry, x, x + 1, y, y + 1)
                         entry.show()
 
@@ -56,11 +58,33 @@ class SudokuGUI:
                                   regionX, regionX + 1,
                                   regionY, regionY + 1)
                 regionTable.show()
-                
 
         self.window.add(self.table)
         self.table.show()
         self.window.show()
+
+    def numberMenu(self, widget, event, cell):
+        if event.type == gtk.gdk.BUTTON_PRESS:
+            menu = gtk.Menu()
+            for value in range(self.board.values + 1):
+                if value:
+                    text = str(value)
+                else:
+                    text = ' '
+
+                item = gtk.MenuItem(text)
+                item.connect_object("activate", self.setEntry, widget, value)
+                item.show()
+                menu.append(item)
+
+            menu.popup(None, None, None, event.button, event.time)
+
+    def setEntry(self, widget, value):
+        if value:
+            widget.set_text(str(value))
+        else:
+            widget.set_text('')
+        
     
     def main(self):
         gtk.main()
