@@ -40,7 +40,7 @@ tipNew = 'Create a new empty or random puzzle.'
 
 tipOpen = 'Load a puzzle from a file.'
 
-tipDuplicate = 'Create a copy of this puzzle.'
+tipDuplicate = 'Create a copy of this puzzle in a new window.'
 
 tipSave = 'Save a puzzle to a file.'
 
