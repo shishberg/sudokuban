@@ -14,7 +14,6 @@ def readSudoku(filename, regionSize = (3, 3), regionCount = (3, 3)):
 		if len(line) == (regionSize[0] * regionSize[1]) - 2:
 		    line = line[1:-1]
 	        cells = [cell.strip() or ' ' for cell in line.split(',')]
-		print cells
         for c in cells:
             if c.isdigit():
                 board[x, y] = int(c)
@@ -196,8 +195,12 @@ class SudokuBoard:
 
 	moves = self.logicalMoves(maxCount = 1)
 	if moves:
-	    nextCell = moves.keys()[0]
-	    nextPossible = [moves[nextCell]]
+            for (cell, value) in moves.items():
+                cell.setValue(value)
+            solutions = self.solve(countOnly, maxCount)
+            for (cell, value) in moves.items():
+                cell.setValue(None)
+            return solutions
 	else:
             for row in self.cells:
                 for cell in row:
