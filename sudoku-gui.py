@@ -194,5 +194,6 @@ if __name__ == '__main__':
         for filename in args:
             newGui = SudokuGUI(readSudoku(filename), filename)
     else:
-        openDialog()
+        newGui = SudokuGUI(SudokuBoard())
+
     gtk.main()
