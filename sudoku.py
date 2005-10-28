@@ -1,4 +1,4 @@
-import sys, math, random
+import sys, re, math, random
 
 def testDifficulty():
     for filename in ['easy.txt', 'moderate.txt', 'medium.txt', 'challenging.txt', 'tough.txt', 'deadend.txt']:
@@ -7,11 +7,18 @@ def testDifficulty():
 CELL_PRESET = 0
 CELL_UNSET  = 1
 
+sizeLine = re.compile('^\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*$')
+
 def readSudoku(filename):
-    
     infile = file(filename)
     numbers = []
+    size = None
     for line in infile.readlines():
+        sizeMatch = sizeLine.match(line)
+        if sizeMatch:
+            size = (int(sizeMatch.group(1)), int(sizeMatch.group(2)))
+            continue
+        
         preset = True
         cur = ''
         for char in line:
@@ -28,12 +35,14 @@ def readSudoku(filename):
                     preset = True
                 if char == '*':
                     preset = False
-    
-    size = int(math.sqrt(math.sqrt(len(numbers))))
-    board = SudokuBoard((size, size), (size, size))
+
+    if not size:
+        width = int(math.sqrt(math.sqrt(len(numbers))))
+        size = (width, width)
+    board = SudokuBoard((size[0], size[1]), (size[1], size[0]))
     numbers.reverse()
-    for y in range(size * size):
-        for x in range(size * size):
+    for y in range(size[0] * size[1]):
+        for x in range(size[0] * size[1]):
             (value, preset) = numbers.pop()
             board[x, y] = value
             if preset:
@@ -41,24 +50,31 @@ def readSudoku(filename):
 
     return board
 
+def writeSudoku(board, filename):
+    out = file(filename, 'w')
+    print >> out, '%d, %d' % board.regionSize
+    out.write(str(board))
+    out.close()
 
-def randomCompleted(size = 3):
-    board = SudokuBoard((size, size), (size, size))
+def randomCompleted(size = (3, 3)):
+    board = SudokuBoard((size[0], size[1]), (size[1], size[0]))
     return board.solve(maxCount = 1, shuffle = True)[0]
         
 
-def randomPuzzle(maxBranch = 3, minCount = 20, maxCount = 30,
+def randomPuzzle(size = (3, 3), maxBranch = 0, maxCount = 0, step = 20,
                  minDiff = 20.0, maxDiff = 40.0, symmetrical = True,
-                 size = 3, reinsert = 0.1, bailout = 100):
+                 reinsert = 0.1, bailout = 50, output = True):
 
     completed = randomCompleted(size)
 
     board = completed.copy()
-    nothingCount = 0
+    stableCount = 0
+    best = None
     while board.filled > maxCount:
         revert = []
-        step = random.randint(1, maxCount - minCount)
-        while len(revert) < step:
+        curStep = random.randint(1, step)
+        
+        while len(revert) < curStep and board.filled > 0:
             x = random.randint(0, board.size[0] - 1)
             y = random.randint(0, board.size[1] - 1)
             cell = board[x, y]
@@ -68,17 +84,24 @@ def randomPuzzle(maxBranch = 3, minCount = 20, maxCount = 30,
             cell.setValue(None)
             if symmetrical:
                 cell2 = board[board.size[0] - x - 1, board.size[1] - y - 1]
-                revert.append((cell2, cell2.value))
-                cell2.setValue(None)
+                # Ignore centre
+                if cell2 != cell:
+                    revert.append((cell2, cell2.value))
+                    cell2.setValue(None)
 
         if board.difficulty(maxBranch) == None or board.solve(True, 2) != 1:
-            nothingCount += 1
-            if nothingCount >= bailout:
-                return None
             for (cell, value) in revert:
                 cell.setValue(value)
-        else:
-            nothingCount = 0
+                
+        if best == None or board.filled < best:
+            best = board.filled
+            if output:
+                print best
+            stableCount = 0
+        elif bailout:
+            stableCount += 1
+            if stableCount >= bailout:
+                break
 
         # Reinsert some random values to avoid getting stuck
         while random.random() < reinsert:
@@ -238,6 +261,9 @@ class SudokuBoard:
             else:
                 return (total + diff, count + 1)
 
+        if maxBranch <= 0:
+            return (-1, 0)
+
         nextCell = None
         nextPossible = None
 
@@ -255,14 +281,12 @@ class SudokuBoard:
         if not nextCell:
             # Solved
             return (0, 1)
-        elif maxBranch <= 0:
-            return (-1, 0)
 
         total = 0
         count = 1
 
         if len(nextPossible) - 1 > maxBranch:
-            nextPossible = nextPossible[:maxBranch + 1]
+            nextPossible = nextPossible[:maxBranch]
             maxBranch = 0
         else:
             maxBranch -= len(nextPossible) - 1
@@ -317,7 +341,7 @@ class SudokuBoard:
             moves = self.logicalMoves(maxCount = 1)
             if not moves:
                 break
-            
+
             for (cell, value) in moves.items():
                 revert.append(cell)
                 cell.setValue(value)
