@@ -26,7 +26,8 @@ class BoardEntry(gtk.EventBox):
 
         self.connect('button_press_event', gui.clickInCell, self.cell)
         self.connect('popup_menu', gui.numberMenu, self.cell)
-        self.connect('focus', gui.setSelection)
+        #self.connect('focus', gui.setSelection)
+        self.connect('size-request', self.setSizeRequest)
 
     def update(self):
         if self.cell.value:
@@ -52,6 +53,13 @@ class BoardEntry(gtk.EventBox):
             self.set_state(gtk.STATE_SELECTED)
         else:
             self.set_state(gtk.STATE_NORMAL)
+
+    def setSizeRequest(self, widget, requisition):
+        #print requisition.width, requisition.height
+        if requisition.width < requisition.height:
+            self.set_size_request(requisition.height, requisition.height)
+        elif requisition.height < requisition.width:
+            self.set_size_request(requisition.width, requisition.width)
 
 class SudokuGUI:
     presetFont = pango.FontDescription('sans bold 18')
@@ -137,7 +145,8 @@ class SudokuGUI:
     def setSelection(self, widget, data = None):
         oldSelection = self.selection
         self.selection = widget
-        oldSelection.update()
+        if oldSelection:
+            oldSelection.update()
         self.selection.update()
         if self.selection.cell.value and self.selection.cell.value != self.selectedValue:
             self.selectedValue = self.selection.cell.value
