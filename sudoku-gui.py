@@ -633,8 +633,8 @@ class SudokuGUI:
                 for x in range(self.board.regionCount[0] * self.board.regionSize[0]):
                     self.board[x, y] = solutions[0][x, y].value
 
-            for entry in self.entries:
-                entry.update()
+            self.dirty = True
+            self.updateAll()
 
     def newPuzzleDialog(self, widget):
         newPuzzleDialog(widget, self)
@@ -1062,16 +1062,7 @@ class NewPuzzleDialog(gtk.Dialog):
                 
             tempWindowFlag = False
 
-            if self.prevWindow and self.prevWindow.board.filled == 0: # FIXME
-                # Add dummy value to openWindows to avoid quit
-                openWindows.append(True)
-                tempWindowFlag = True
-                self.prevWindow.destroy()
-
             gui = SudokuGUI(board, dirty = dirty)
-
-            if tempWindowFlag:
-                openWindows.remove(True)
 
         else:
             self.hide()
