@@ -35,7 +35,7 @@ tipSolve = 'Find a solution for the current puzzle. If there are multiple soluti
 
 tipHighlight = 'Colour squares that are in the same row, column or region as the selected number anywhere in the puzzle. Squares that are not coloured could be that number.'
 
-tipExclude = 'Restricts input to numbers that are available for the current square. Right-click on a square to see which numbers it could be.'
+tipExclude = 'Restricts input to numbers that are available for each square. Right-click on a square to see which numbers are available for it.'
 
 tipPresets = 'Edit the pre-given numbers in the puzzle. You should only need to do this when creating or entering a new puzzle.'
 
@@ -248,12 +248,18 @@ class BoardEntry(gtk.EventBox):
     def setValue(self, value):
         if (not self.gui.preset) and (self.cell.value) and (self.cell.state != CELL_UNSET):
             return
-        
-        self.cell.setValue(value)
+
+        if self.cell.value != value:
+            self.cell.setValue(value)
+            self.gui.dirty = True
         if self.gui.preset:
-            self.cell.state = CELL_PRESET
+            if self.cell.state != CELL_PRESET:
+                self.cell.state = CELL_PRESET
+                self.gui.dirty = True
         else:
-            self.cell.state = CELL_UNSET
+            if self.cell.state != CELL_UNSET:
+                self.cell.state = CELL_UNSET
+                self.gui.dirty = True
         if value:
             self.gui.selectedValue = value
         
@@ -263,7 +269,7 @@ class BoardEntry(gtk.EventBox):
             self.update()
 
 class SudokuGUI:
-    def __init__(self, board = SudokuBoard(), filename = None):
+    def __init__(self, board = SudokuBoard(), filename = None, dirty = False):
         openWindows.append(self)
 
         self.scanHighlight = False
@@ -272,9 +278,11 @@ class SudokuGUI:
         self.exclude = False
         self.digitKeys = ''
         self.preset = False
+        self.dirty = dirty
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.connect('destroy', self.destroy)
+        #self.window.connect('destroy', self.destroy)
+        self.window.connect('delete-event', self.destroy)
 
         self.window.connect('key-press-event', self.keyPress)
 
@@ -438,12 +446,12 @@ class SudokuGUI:
 
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
         self.actionGroup.add_actions([('File', None, '_File'),
-                                      ('New', gtk.STOCK_NEW, '_New', '<Control>N', tipNew, newPuzzleDialog),
+                                      ('New', gtk.STOCK_NEW, '_New', '<Control>N', tipNew, self.newPuzzleDialog),
                                       ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', tipOpen, openDialog),
                                       ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', tipSave, self.saveFile),
                                       ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', tipSaveAs, self.saveAsDialog),
                                       ('Close', gtk.STOCK_CLOSE, '_Close', '<Control>W', tipClose, self.destroy),
-                                      ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', tipQuit, quit),
+                                      ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', tipQuit, closeAll),
                                       ('Settings', None, '_Settings'),
                                       ('Fonts', gtk.STOCK_SELECT_FONT, '_Fonts', None, tipFonts, fontsDialog),
                                       ('Colours', gtk.STOCK_SELECT_COLOR, '_Colours', None, tipColours, coloursDialog),
@@ -628,14 +636,23 @@ class SudokuGUI:
             for entry in self.entries:
                 entry.update()
 
-    def saveAsDialog(self, widget):
+    def newPuzzleDialog(self, widget):
+        newPuzzleDialog(widget, self)
+
+    def saveAsDialog(self, widget = None, destroyAfter = False):
         filedialog = gtk.FileSelection('Save As')
         filedialog.set_modal(True)
-        filedialog.ok_button.connect_object('clicked', self.saveFromDialog, filedialog)
+        if destroyAfter:
+            filedialog.ok_button.connect_object('clicked', self.saveThenDestroy, filedialog)
+        else:
+            filedialog.ok_button.connect_object('clicked', self.saveFromDialog, filedialog)
         filedialog.cancel_button.connect_object('clicked', destroyDialog, filedialog)
         filedialog.show()
 
-    def saveFromDialog(self, filedialog, overwrite = False):
+    def saveThenDestroy(self, filedialog, overwrite = False):
+        self.saveFromDialog(filedialog, overwrite, True)
+
+    def saveFromDialog(self, filedialog, overwrite = False, destroyAfter = False):
         filename = filedialog.get_filename()
         if filename:
             if not overwrite and os.path.exists(filename):
@@ -643,26 +660,78 @@ class SudokuGUI:
                 confirm.set_markup('Overwrite %s?' % filename)
                 confirm.set_title('Confirm overwrite')
                 confirm.set_modal(True)
-                confirm.connect('response', self.confirmOverwrite, filedialog)
+                confirm.connect('response', self.confirmOverwrite, filedialog, destroyAfter)
                 confirm.show()
             else:
                 self.setFilename(filename)
-                try:
-                    self.saveFile()
-                finally:
+                if self.saveFile():
                     filedialog.destroy()
+                    if destroyAfter:
+                        self.destroy()
 
-    def confirmOverwrite(self, dialog, response, filedialog):
+    def confirmOverwrite(self, dialog, response, filedialog, destroyAfter):
         dialog.destroy()
         if response == gtk.RESPONSE_YES:
-            self.saveFromDialog(filedialog, True)            
+            self.saveFromDialog(filedialog, True, destroyAfter)
 
     def saveFile(self, widget = None):
-        out = file(self.filename, 'w')
-        out.write(str(self.board))
-        out.close()
+        errorMessage = None
+        try:
+            out = file(self.filename, 'w')
+            out.write(str(self.board))
+            out.close()
+            self.dirty = False
+        except IOError, error:
+            errorMessage = error.strerror + ': ' + error.filename
+        except:
+            errorMessage = 'An unknown error occurred.'
 
-    def destroy(self, widget, data = None):
+        if errorMessage:
+            errorDialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL,
+                                            gtk.MESSAGE_ERROR, gtk.BUTTONS_OK)
+            errorDialog.set_markup(errorMessage)
+            errorDialog.connect('response', destroyDialog)
+            errorDialog.show()
+            return False
+
+        return True
+
+    def destroy(self, widget = None, data = None):
+        if data == gtk.RESPONSE_YES:
+            widget.destroy()
+            if self.filename:
+                if not self.saveFile():
+                    return True
+            else:
+                self.saveAsDialog(destroyAfter = True)
+                return True
+
+        elif data == gtk.RESPONSE_CANCEL:
+            widget.destroy()
+            return True
+
+        elif data == gtk.RESPONSE_NO:
+            widget.destroy()
+        
+        elif self.dirty:
+            self.window.grab_focus()
+            dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL,
+                                       type = gtk.MESSAGE_QUESTION)
+            dialog.add_buttons(gtk.STOCK_YES, gtk.RESPONSE_YES,
+                               gtk.STOCK_NO, gtk.RESPONSE_NO,
+                               gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+
+            message = 'Save changes to '
+            if self.filename:
+                message += os.path.basename(self.filename)
+            else:
+                message += 'untitled puzzle'
+            message += '?'
+            dialog.set_markup(message)
+            dialog.connect('response', self.destroy)
+            dialog.show()
+            return True
+            
         if self in openWindows:
             openWindows.remove(self)
             
@@ -874,10 +943,12 @@ class FontDialog(gtk.Dialog):
 
 
 class NewPuzzleDialog(gtk.Dialog):
-    def __init__(self):
+    def __init__(self, prevWindow = None):
         gtk.Dialog.__init__(self, 'New puzzle',
                             buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                        gtk.STOCK_NEW, gtk.RESPONSE_OK))
+
+        self.prevWindow = None
 
         self.set_modal(True)
 
@@ -959,8 +1030,13 @@ class NewPuzzleDialog(gtk.Dialog):
 
     def response(self, widget, data):
         if data == gtk.RESPONSE_OK:
+            
+            dirty = False
+            
             size = (int(self.widthSpin.get_value()), int(self.heightSpin.get_value()))
             if self.radioRandom.get_active():
+                dirty = True
+                
                 maxBranch = int(self.branchSpin.get_value())
                 symmetrical = self.symmetricalCheck.get_active()
                 scanOnly = self.scanCheck.get_active()
@@ -983,8 +1059,19 @@ class NewPuzzleDialog(gtk.Dialog):
             else:
                 self.hide()
                 board = SudokuBoard(size, (size[1], size[0]))
+                
+            tempWindowFlag = False
 
-            gui = SudokuGUI(board)
+            if self.prevWindow and self.prevWindow.board.filled == 0: # FIXME
+                # Add dummy value to openWindows to avoid quit
+                openWindows.append(True)
+                tempWindowFlag = True
+                self.prevWindow.destroy()
+
+            gui = SudokuGUI(board, dirty = dirty)
+
+            if tempWindowFlag:
+                openWindows.remove(True)
 
         else:
             self.hide()
@@ -1018,10 +1105,11 @@ def destroyDialog(widget, data = None):
     widget.destroy()
 
     
-def newPuzzleDialog(widget = None):
+def newPuzzleDialog(widget = None, prevWindow = None):
     global newDialog
     if not newDialog:
         newDialog = NewPuzzleDialog()
+    newDialog.prevWindow = prevWindow
     newDialog.show()
     return newDialog
 
@@ -1030,6 +1118,10 @@ def fontsDialog(widget = None):
 
 def coloursDialog(widget = None):
     ColourDialog().show()
+
+def closeAll(widget = None):
+    for window in openWindows:
+        window.destroy()
 
 def quit(widget = None):
     settings.save()
