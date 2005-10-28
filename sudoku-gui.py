@@ -24,6 +24,10 @@ class BoardEntry(gtk.EventBox):
         self.label.show()
         self.add(self.label)
 
+        self.connect('button_press_event', gui.clickInCell, self.cell)
+        self.connect('popup_menu', gui.numberMenu, self.cell)
+        self.connect('focus', gui.setSelection)
+
     def update(self):
         if self.cell.value:
             self.label.set_text(str(self.cell.value))
@@ -105,10 +109,6 @@ class SudokuGUI:
                             entry.label.modify_fg(gtk.STATE_NORMAL, SudokuGUI.unsetColour)
 
                         entry.update()
-
-                        entry.connect('button_press_event', self.clickInCell, cell)
-                        entry.connect('popup_menu', self.numberMenu, cell)
-                        entry.connect('focus', self.setSelection)
 
                         regionTable.attach(entry, x, x + 1, y, y + 1)
                         entry.show()
