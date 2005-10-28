@@ -178,6 +178,8 @@ class SudokuGUI:
                                       ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', None, self.saveAsDialog),
                                       ('Close', gtk.STOCK_CLOSE, '_Close', '<Control>W', None, self.destroy),
                                       ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', None, quit),
+                                      ('Settings', None, '_Settings'),
+                                      ('Fonts', gtk.STOCK_SELECT_FONT, '_Fonts', None, None, fontsDialog),
                                       ('Puzzle', None, '_Puzzle'),
                                       ('CheckValid', None, 'Check _Valid', None, None, self.checkValid),
                                       ('CheckSolvable', None, 'Check _Solvable', None, None, self.checkSolvable),
@@ -185,13 +187,15 @@ class SudokuGUI:
                                       ('Hints', None, '_Hints'),
                                       ('Solve', None, '_Solve', None, None, self.solve)
                                       ])
-        self.actionGroup.add_toggle_actions([('Scan', None, '_Scan Highlighting', None, None, self.toggleScanHighlight)
+        self.actionGroup.add_toggle_actions([('Scan', None, '_Highlighting', None, None, self.toggleScanHighlight)
                                              ])
 
         uimanager.insert_action_group(self.actionGroup, 0)
 
         uimanager.add_ui_from_file('sudoku-ui.xml')
         self.vbox.pack_start(uimanager.get_widget('/MenuBar'),
+                             False, True, 0)
+        self.vbox.pack_start(uimanager.get_widget('/Toolbar'),
                              False, True, 0)
 
     def toggleScanHighlight(self, action):
@@ -427,12 +431,65 @@ class ProgressDialog(gtk.Dialog):
             gtk.main_iteration()
 
 
+class FontDialog(gtk.Dialog):
+    def __init__(self):
+        gtk.Dialog.__init__(self, 'Fonts',
+                            buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                                       gtk.STOCK_OK, gtk.RESPONSE_OK))
+
+
+        table = gtk.Table(2, 2)
+        table.set_row_spacings(5)
+        table.set_col_spacings(5)
+        table.set_border_width(10)
+        table.show()
+
+        self.oldPreset = BoardEntry.presetFont
+        self.oldUnset = BoardEntry.unsetFont
+
+        self.presetButton = gtk.FontButton(BoardEntry.presetFont.to_string())
+        self.presetButton.show()
+        self.presetButton.connect('font-set', self.setFont)
+        table.attach(self.presetButton, 1, 2, 0, 1)
+        
+        self.unsetButton = gtk.FontButton(BoardEntry.unsetFont.to_string())
+        self.unsetButton.show()
+        self.unsetButton.connect('font-set', self.setFont)
+        table.attach(self.unsetButton, 1, 2, 1, 2)
+        
+        self.vbox.add(table)
+        self.connect('response', self.response)
+        self.show()
+
+    def setFont(self, fontButton):
+        newFont = pango.FontDescription(fontButton.get_font_name())
+        
+        if fontButton is self.presetButton:
+            BoardEntry.presetFont = newFont
+        else:
+            BoardEntry.unsetFont = newFont
+
+        self.updateAll()
+        
+    def response(self, widget, data):
+        if data == gtk.RESPONSE_CANCEL:
+            BoardEntry.presetFont = self.oldPreset
+            BoardEntry.unsetFont = self.oldUnset
+            self.updateAll()
+
+        self.destroy()
+
+    def updateAll(self):
+        for window in openWindows:
+            window.updateAll()
+            window.window.resize(1, 1)
+
 
 class NewPuzzleDialog(gtk.Dialog):
     def __init__(self):
         gtk.Dialog.__init__(self, 'New puzzle',
-                            buttons = (gtk.STOCK_NEW, gtk.RESPONSE_OK,
-                                       gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL))
+                            buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                                       gtk.STOCK_NEW, gtk.RESPONSE_OK))
 
         self.set_modal(True)
 
@@ -569,6 +626,9 @@ def newPuzzleDialog(widget = None):
         newDialog = NewPuzzleDialog()
     newDialog.show()
     return newDialog
+
+def fontsDialog(widget = None):
+    FontDialog().show()
 
 
 def quit(widget = None):

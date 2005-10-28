@@ -10,27 +10,26 @@
              <menuitem action="Close"/>
              <menuitem action="Quit"/>
         </menu>
+        <menu action="Settings">
+             <menuitem action="Fonts"/>
+        </menu>
         <menu action="Puzzle">
+             <menu action="Hints">
+                 <menuitem action="Solve"/>
+                 <menuitem action="Scan"/>
+             </menu>
              <menuitem action="CheckValid"/>
              <menuitem action="CheckSolvable"/>
              <menuitem action="Difficulty"/>
         </menu>
-        <menu action="Hints">
-             <menuitem action="Solve"/>
-             <menuitem action="Scan"/>
-        </menu>
     </menubar>
-<!--
     <toolbar name="Toolbar">
-      <toolitem action="Quit"/>
+      <toolitem action="New"/>
+      <toolitem action="Open"/>
+      <toolitem action="Save"/>
       <separator/>
-      <toolitem action="Mute"/>
+      <toolitem action="Solve"/>
+      <toolitem action="Scan"/>
       <separator/>
-      <placeholder name="RadioBandItems">
-        <toolitem action="AM"/>
-        <toolitem action="FM"/>
-        <toolitem action="SSB"/>
-        </placeholder>
-         </toolbar>
--->
+    </toolbar>
 </ui>
