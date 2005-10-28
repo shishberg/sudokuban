@@ -264,7 +264,7 @@ class SudokuBoard:
         self.cells[y][x].setValue(value)
 
     def difficultyString(self, maxBranch = 0, progress = None, cancel = None):
-        diff = self.difficulty(maxBranch, progress, cancel)
+        diff = self.difficulty(maxBranch, False, progress, cancel)
 
         for (minDiff, string) in DIFFICULTY_STR:
             if (diff == None) or (minDiff == None) or (diff < minDiff):
