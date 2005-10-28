@@ -3,6 +3,15 @@ import pygtk, gtk, pango
 
 from sudoku import *
 
+# Key press event values for arrow keys. This is probably
+# defined somewhere (or at least it should be) but I couldn't
+# find it.
+KEY_LEFT   = 65361
+KEY_UP     = 65362
+KEY_RIGHT  = 65363
+KEY_DOWN   = 65364
+KEY_ARROWS = (KEY_LEFT, KEY_UP, KEY_RIGHT, KEY_DOWN)
+
 class Settings:
     def __init__(self, filename = None):
         self.filename = filename
@@ -196,9 +205,12 @@ class SudokuGUI:
         self.scanHighlight = False
         self.selection = None
         self.selectedValue = 0
+        self.digitKeys = ''
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.connect('destroy', self.destroy)
+
+        self.window.connect('key-press-event', self.keyPress)
 
         self.vbox = gtk.VBox(False, 0)
         self.window.add(self.vbox)
@@ -219,6 +231,7 @@ class SudokuGUI:
         self.window.modify_bg(gtk.STATE_NORMAL, settings.colourBorder)
 
         self.entries = []
+        self.cells = {}
 
         for regionY in range(regions[1]):
             for regionX in range(regions[0]):
@@ -237,6 +250,7 @@ class SudokuGUI:
                         cell = self.board[cellX, cellY]
                         entry = BoardEntry(cell, self)
                         self.entries.append(entry)
+                        self.cells[cell.coord] = entry
                         
                         regionTable.attach(entry, x, x + 1, y, y + 1)
                         entry.show()
@@ -249,6 +263,59 @@ class SudokuGUI:
         self.vbox.add(self.table)
         self.table.show()
         self.window.show()
+
+    def keyPress(self, widget, event):
+        key = event.keyval
+        if key >= 0 and key < 256:
+            keyStr = chr(key)
+            if keyStr.isdigit() and self.selection:
+                self.digitKeys += keyStr
+                while self.digitKeys:
+                    value = int(self.digitKeys)
+                    if 0 < value and value <= self.board.values:
+                        self.setEntry(self.selection, value)
+                        return True
+                    self.digitKeys = self.digitKeys[1:]
+        elif key in KEY_ARROWS:
+            if self.selection:
+                (x, y) = self.selection.cell.coord
+            else:
+                (x, y) = (0, 0)
+
+            if key == KEY_LEFT:
+                x -= 1
+            elif key == KEY_UP:
+                y -= 1
+            elif key == KEY_RIGHT:
+                x += 1
+            elif key == KEY_DOWN:
+                y += 1
+
+            (width, height) = self.board.size
+
+            if x < 0:
+                x += width
+                y -= 1
+                if y < 0:
+                    y += height
+            elif x >= width:
+                x -= width
+                y += 1
+                if y >= height:
+                    y -= height
+            elif y < 0:
+                y += height
+                x -= 1
+                if x < 0:
+                    x += width
+            elif y >= height:
+                y -= height
+                x += 1
+                if x >= width:
+                    x -= width
+
+            self.setSelection(self.cells[(x, y)])
+            return True
 
     def setFilename(self, filename):
         self.filename = filename
@@ -272,6 +339,9 @@ class SudokuGUI:
             self.selectedValue = self.selection.cell.value
             if self.scanHighlight:
                 self.updateAll()
+                
+        if not oldSelection is widget:
+            self.digitKeys = ''
 
     def createActions(self):
         uimanager = gtk.UIManager()
@@ -295,7 +365,7 @@ class SudokuGUI:
                                       ('Hints', None, '_Hints'),
                                       ('Solve', None, '_Solve', None, None, self.solve)
                                       ])
-        self.actionGroup.add_toggle_actions([('Scan', None, '_Highlighting', None, None, self.toggleScanHighlight)
+        self.actionGroup.add_toggle_actions([('Scan', None, '_Highlight', None, None, self.toggleScanHighlight)
                                              ])
 
         uimanager.insert_action_group(self.actionGroup, 0)
@@ -350,10 +420,11 @@ class SudokuGUI:
         else:
             entry.cell.setValue(None)
 
-        if self.scanHighlight:
-            self.updateAll()
-        else:
-            entry.update()
+        self.setSelection(entry)
+        #if self.scanHighlight:
+        #    self.updateAll()
+        #else:
+        #    entry.update()
 
     def checkValid(self, widget = None):
         if self.board.isValid():
