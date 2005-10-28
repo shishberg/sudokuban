@@ -849,7 +849,10 @@ if __name__ == '__main__':
     try:
         settings = Settings(os.path.join(os.environ['HOME'], '.sudokusensei'))
     except:
-        settings = Settings()
+        try:
+            settings = Settings('.sudokusensei')
+        except:
+            settings = Settings()
     
     args = sys.argv[1:]
 
