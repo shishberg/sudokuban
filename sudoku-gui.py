@@ -73,7 +73,7 @@ class SudokuGUI:
                             entry.modify_font(SudokuGUI.unsetFont)
                             entry.modify_text(gtk.STATE_NORMAL, SudokuGUI.unsetColour)
 
-                        entry.connect("event", self.numberMenu, cell);
+                        entry.connect("button_press_event", self.numberMenu, cell);
 
                         regionTable.attach(entry, x, x + 1, y, y + 1)
                         entry.show()
@@ -88,7 +88,7 @@ class SudokuGUI:
         self.window.show()
 
     def numberMenu(self, widget, event, cell):
-        if event.type == gtk.gdk.BUTTON_PRESS:
+        if event.button == 3:
             menu = gtk.Menu()
             for value in range(self.board.values + 1):
                 if value:
@@ -102,6 +102,8 @@ class SudokuGUI:
                 menu.append(item)
 
             menu.popup(None, None, None, event.button, event.time)
+
+            return True
 
     def setEntry(self, entry, value):
         if value:
