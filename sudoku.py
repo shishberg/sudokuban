@@ -15,10 +15,16 @@ class Sudoku:
         self.data[x][y] = num
 
     def row(self, n):
-        return [self[i, n] for i in range(0, 9)]
+        list = []
+        for i in range(0, 9):
+            list.append(self[i, n])
+        return list
 
     def col(self, n):
-        return [self[n, i] for i in range(0, 9)]
+        list = []
+        for i in range(0, 9):
+            list.append(self[n, i])
+        return list
 
     def grid(self, (gridX, gridY)):
         startX = gridX * 3
@@ -34,17 +40,17 @@ class Sudoku:
         string = '\n'
         for y in range(0, 9):
             if y % 3 == 0:
-                string += '+---+---+---+\n'
+                string = string + '+---+---+---+\n'
             for x in range(0, 9):
                 if x % 3 == 0:
-                    string += '|'
+                    string = string + '|'
                 val = self[x, y]
                 if val:
-                    string += str(val)
+                    string = string + str(val)
                 else:
-                    string += ' '
-            string += '|\n'
-        string += '+---+---+---+\n'
+                    string = string + ' '
+            string = string + '|\n'
+        string = string + '+---+---+---+\n'
         return string
 
     def solve(self):
@@ -93,7 +99,7 @@ class Sudoku:
         for n in mostConsValid:
             branch = Sudoku(self)
             branch[mostConstrained] = n
-            solutions += branch.solve()
+            solutions = solutions + branch.solve()
 
         return solutions
                         
