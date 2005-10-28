@@ -13,7 +13,7 @@ class BoardEntry(gtk.EventBox):
         (0xefff, 0xafff, 0xafff)  # Red
         ]
     presetFont = pango.FontDescription('sans bold 18')
-    unsetFont = pango.FontDescription('sans normal 18')
+    unsetFont = pango.FontDescription('sans 18')
     presetColour = gtk.gdk.Color(0x0000, 0x0000, 0x0000)
     unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)    
 
@@ -180,7 +180,8 @@ class SudokuGUI:
         uimanager.insert_action_group(self.actionGroup, 0)
 
         uimanager.add_ui_from_file('sudoku-ui.xml')
-        self.vbox.add(uimanager.get_widget('/MenuBar'))
+        self.vbox.pack_start(uimanager.get_widget('/MenuBar'),
+                             False, True, 0)
 
     def toggleSweepHighlight(self, action):
         self.sweepHighlight = action.get_active()
@@ -244,15 +245,55 @@ class SudokuGUI:
         dialog.show()
 
     def checkSolvable(self, widget = None):
-        # FIXME - progress bar
-        pass
+        progress = ProgressDialog('Check Solvable')
+        progress.setLabel('Checking for solutions...')
+        progress.show()
+        progress.update()
+
+        solutions = self.board.solve(True, 2, progress = progress.pulse,
+                                     cancel = progress.cancelled)
+
+        cancelled = progress.isCancelled
+        progress.destroy()
+
+        if cancelled:
+            return
+        
+        if solutions == 1:
+            dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL,
+                                       gtk.MESSAGE_INFO, gtk.BUTTONS_OK)
+            dialog.set_markup('Puzzle is solvable.')
+        elif solutions == 0:
+            dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL,
+                                       gtk.MESSAGE_WARNING, gtk.BUTTONS_OK)
+            dialog.set_markup('Puzzle has no solution.')
+        else:
+            dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL,
+                                       gtk.MESSAGE_WARNING, gtk.BUTTONS_OK)
+            dialog.set_markup('Puzzle has multiple solutions.')
+
+        dialog.connect('response', destroyDialog)
+        dialog.show()
 
     def difficulty(self, widget = None):
         # FIXME - progress bar
         pass
 
     def solve(self, action):
-        solutions = self.board.solve(maxCount = 1)
+        progress = ProgressDialog('Solve Puzzle')
+        progress.setLabel('Solving puzzle...')
+        progress.show()
+        progress.update()
+
+        solutions = self.board.solve(maxCount = 1, progress = progress.pulse,
+                                     cancel = progress.cancelled)
+
+        cancelled = progress.isCancelled
+        progress.destroy()
+
+        if cancelled:
+            return
+        
         if solutions:
             for y in range(self.board.regionCount[1] * self.board.regionSize[1]):
                 for x in range(self.board.regionCount[0] * self.board.regionSize[0]):
@@ -265,7 +306,7 @@ class SudokuGUI:
         filedialog = gtk.FileSelection('Save As')
         filedialog.set_modal(True)
         filedialog.ok_button.connect_object('clicked', self.saveFromDialog, filedialog)
-        filedialog.cancel_button.connect_object('clicked', destroyFileDialog, filedialog)
+        filedialog.cancel_button.connect_object('clicked', destroyDialog, filedialog)
         filedialog.show()
 
     def saveFromDialog(self, filedialog, overwrite = False):
@@ -305,11 +346,61 @@ class SudokuGUI:
             gtk.main_quit()
 
 
+class ProgressDialog(gtk.Dialog):
+    def __init__(self, title = 'Progress'):
+        gtk.Dialog.__init__(self, title,
+                            buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL))
+
+        self.isCancelled = False
+
+        self.bar = gtk.ProgressBar()
+        self.bar.show()
+
+        self.label = gtk.Label()
+        self.vbox.pack_start(self.label, padding = 5)
+
+        self.vbox.pack_start(self.bar, padding = 5)
+
+        self.connect('response', self.cancel)
+        self.connect('destroy', self.cancel)
+
+    def setLabel(self, text):
+        if not self.isCancelled:
+            self.label.show()
+            self.label.set_text(text)
+            self.update()
+
+    def setText(self, text):
+        if not self.isCancelled:
+            self.bar.set_text(text)
+            self.update()
+
+    def setFraction(self, fraction):
+        if not self.isCancelled:
+            self.bar.set_fraction(fraction)
+            self.update()
+
+    def pulse(self):
+        if not self.isCancelled:
+            self.bar.pulse()
+            self.update()
+
+    def cancelled(self):
+        return self.isCancelled
+
+    def cancel(self, widget = None, data = None):
+        self.isCancelled = True
+
+    def update(self):
+        while gtk.events_pending():
+            gtk.main_iteration()
+
+
 class RandomPuzzleDialog(gtk.Dialog):
     def __init__(self):
         gtk.Dialog.__init__(self, 'Generate random puzzle',
-                            buttons = ('Create', gtk.RESPONSE_OK,
-                                       'Cancel', gtk.RESPONSE_CANCEL))
+                            buttons = (gtk.STOCK_NEW, gtk.RESPONSE_OK,
+                                       gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL))
 
         self.table = gtk.Table(2, 3)
         self.table.set_row_spacings(5)
@@ -348,7 +439,7 @@ def openDialog(widget = None):
     filedialog = gtk.FileSelection('Open')
     filedialog.set_modal(True)
     filedialog.ok_button.connect_object('clicked', loadFromDialog, filedialog)
-    filedialog.cancel_button.connect_object('clicked', destroyFileDialog, filedialog)
+    filedialog.cancel_button.connect_object('clicked', destroyDialog, filedialog)
     filedialog.show()
 
 

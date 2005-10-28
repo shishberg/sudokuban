@@ -385,7 +385,18 @@ class SudokuBoard:
 
         return moves
     
-    def solve(self, countOnly = False, maxCount = None, shuffle = False):
+    def solve(self, countOnly = False, maxCount = None, shuffle = False,
+              progress = None, cancel = None):
+
+        if progress:
+            progress()
+        if cancel:
+            if cancel():
+                if countOnly:
+                    return 0
+                else:
+                    return []
+        
         if (maxCount != None) and (maxCount <= 0):
             if countOnly:
                 return 0
@@ -450,7 +461,7 @@ class SudokuBoard:
             
         for value in nextPossible:
             nextCell.setValue(value)
-            solutions += self.solve(countOnly, maxCount, shuffle)
+            solutions += self.solve(countOnly, maxCount, shuffle, progress, cancel)
             nextCell.setValue(None)
 
             if maxCount != None:
