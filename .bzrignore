@@ -1,0 +1,5 @@
+(^|/)_darcs($|/)
+(^|/).bzr($|/)
+^tailor.log$
+^tailor.state
+^tailor.state.journal
