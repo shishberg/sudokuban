@@ -39,8 +39,9 @@ def solve(form):
         for row in range(0, 9):
             key = 'num%d%d' % (col, row)
             if form.has_key(key):
-                sudoku[col, row] = int(form[key].value)
-                link = link + '&%s=%d' % (key, sudoku[col, row])
+                val = int(form[key].value)
+                sudoku[col, row] = val
+                link = link + '&%s=%d' % (key, val)
 
     solutions = sudoku.solve()
 
