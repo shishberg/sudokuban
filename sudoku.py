@@ -34,7 +34,7 @@ class SudokuBoard:
         self.regionCount = regionCount
         self.size = (regionSize[0] * regionCount[0], regionSize[1] * regionCount[1])
         
-        self.values = range(1, regionSize[0] * regionSize[1] + 1)
+        self.values = regionSize[0] * regionSize[1]
 
         self.cells = []       
         for y in range(regionSize[1] * regionCount[1]):
@@ -78,7 +78,7 @@ class SudokuBoard:
 
     def __repr__(self):
         
-        maxLength = len(str(self.values[-1]))
+        maxLength = len(str(self.values))
         if maxLength > 1:
             maxLength += 1
         cellPrint = '%' + str(maxLength) + 'd'
@@ -281,7 +281,7 @@ class SudokuCell:
 
     def possibleValues(self):
         if self.cachedPossibleValues == None:
-            self.cachedPossibleValues = self.board.values[:]
+            self.cachedPossibleValues = range(1, self.board.values + 1)
 
             for set in self.sets:
                 self.cachedPossibleValues = [value for value in self.cachedPossibleValues if set.isAvailable(value)]
@@ -322,7 +322,7 @@ class ExclusionSet:
         self.board = board
         self.cells = []
 
-        self.cachedIsAvailable = [None] * len(self.board.values)
+        self.cachedIsAvailable = [None] * self.board.values
         
     def isAvailable(self, value):
         cached = self.cachedIsAvailable[value - 1]
@@ -344,7 +344,7 @@ class ExclusionSet:
 
     def determinedValues(self):
         determined = []
-        for value in self.board.values:
+        for value in range(1, self.board.values + 1):
             possibleCell = None
             for cell in self.cells:
                 if cell.couldBe(value):
