@@ -95,6 +95,7 @@ class SudokuGUI:
 
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
         self.actionGroup.add_actions([('File', None, '_File'),
+                                      ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', None, self.openDialog),
                                       ('Quit', gtk.STOCK_QUIT, '_Quit', None, None, self.destroy),
                                       ('Hints', None, '_Hints'),
                                       ('Solve', None, '_Solve', None, None, self.solve)])
@@ -145,6 +146,18 @@ class SudokuGUI:
     
     def main(self):
         gtk.main()
+
+    def openDialog(self, widget = None):
+        # FIXME - save changes?
+
+        self.filedialog = gtk.FileSelection('Open Sudoku puzzle')
+        self.filedialog.ok_button.connect('clicked', self.loadFromDialog)
+        self.filedialog.cancel_button.connect('clicked', lambda w: filedialog.destroy())
+        self.filedialog.show()
+
+    def loadFromDialog(self, widget):
+        print self.filedialog.get_filename()
+        self.filedialog.destroy()
 
     def destroy(self, widget, data = None):
         gtk.main_quit()
