@@ -5,17 +5,31 @@ from sudoku import *
 
 class BoardEntry(gtk.EventBox):
     backgroundColour = gtk.gdk.Color(0xffff, 0xffff, 0xffff)
-    normalShade = 0xffff
-    minHighlightShade = 0x7fff
-    highlightShades = [
+    presetFont = pango.FontDescription('sans bold 18')
+    unsetFont = pango.FontDescription('sans 18')
+    presetColour = gtk.gdk.Color(0x0000, 0x0000, 0x0000)
+    unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)
+
+    minShade = 0x7fff
+    normalShade = [0xffff, 0xffff, 0xffff]
+    highlightBaseShades = [
         (0xafff, 0xcfff, 0xefff), # Blue
         (0xafff, 0xefff, 0x8fff), # Green
         (0xefff, 0xafff, 0xafff)  # Red
         ]
-    presetFont = pango.FontDescription('sans bold 18')
-    unsetFont = pango.FontDescription('sans 18')
-    presetColour = gtk.gdk.Color(0x0000, 0x0000, 0x0000)
-    unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)    
+    highlightShades = {}
+    for a in (True, False):
+        for b in (True, False):
+            for c in (True, False):
+                shade = normalShade[:]
+                for n in range(3):
+                    if not (a,b,c)[n]:
+                        for channel in range(3):
+                            shade[channel] = max(
+                                shade[channel] - 0xffff + highlightBaseShades[n][channel],
+                                minShade
+                                )
+                highlightShades[(a,b,c)] = gtk.gdk.Color(shade[0], shade[1], shade[2])
 
     def __init__(self, cell, gui):
         gtk.EventBox.__init__(self)
@@ -41,16 +55,12 @@ class BoardEntry(gtk.EventBox):
             self.label.set_text(' ')
 
         if self.gui.sweepHighlight and self.gui.selectedValue:
-            channels = [BoardEntry.normalShade] * 3
-
-            for n in range(3):
-                if not self.cell.sets[n].isAvailable(self.gui.selectedValue):
-                    shade = BoardEntry.highlightShades[n]
-                    for i in range(3):
-                        channels[i] = max(channels[i] - (0xffff - shade[i]),
-                                          BoardEntry.minHighlightShade)
-            
-            self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(channels[0], channels[1], channels[2]))
+            shadeKey = (
+                self.cell.sets[0].isAvailable(self.gui.selectedValue),
+                self.cell.sets[1].isAvailable(self.gui.selectedValue),
+                self.cell.sets[2].isAvailable(self.gui.selectedValue)
+                )
+            self.modify_bg(gtk.STATE_NORMAL, BoardEntry.highlightShades[shadeKey])
         else:
             self.modify_bg(gtk.STATE_NORMAL, BoardEntry.backgroundColour)
 
