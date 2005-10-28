@@ -120,9 +120,6 @@ class Sudoku:
         col = self.availCol[x][num-1]
         if isinstance(col, list) and y in col:
             col.remove(y)
-            #if num == 6:
-            #    print 'col', x, y, num
-            #    print col
             if len(col) == 0:
                 self.valid = 0
 
@@ -233,26 +230,25 @@ class Sudoku:
             for y in range(9):
                 item = self.data[x][y]
                 if isinstance(item, list) and len(item) == 1:
-                    next.append(((x, y), item[0], 'dat'))
+                    next.append(((x, y), item[0]))
 
                 item = self.availCol[x][y]
                 if isinstance(item, list) and len(item) == 1:
-                    #print 'col', x, y+1, item
-                    next.append(((x, item[0]), y+1, 'col'))
+                    next.append(((x, item[0]), y+1))
 
                 item = self.availRow[x][y]
                 if isinstance(item, list) and len(item) == 1:
-                    next.append(((item[0], x), y+1, 'row'))
+                    next.append(((item[0], x), y+1))
 
                 item = self.availBox[x][y]
                 if isinstance(item, list) and len(item) == 1:
                     xPos = (x % 3) * 3 + (item[0] % 3)
                     yPos = (x / 3) * 3 + (item[0] / 3)
-                    next.append(((xPos, yPos), y+1, 'box'))
+                    next.append(((xPos, yPos), y+1))
 
         if evaluate:
             nextBoards = []
-            for ((x, y), n, descr) in next:
+            for ((x, y), n) in next:
                 s = Sudoku(self)
                 s[x, y] = n
                 nextBoards.append(s)
@@ -263,16 +259,34 @@ class Sudoku:
     def __cmp__(self, other):
         return cmp(self.data, other.data)
 
+    def __hash__(self):
+        curHash = 0
+        for x in range(9):
+            for y in range(9):
+                left = ((x << 4) ^ y) % 28
+                item = self.data[x][y]
+                if isinstance(item, int):
+                    curHash = curHash ^ (item << left)
+        return curHash
+
 def paths(start):
     current = [start]
     seen = []
+    seenHash = {}
     while current:
         s = current.pop()
-        if not s in seen:
+        if not seenHash.has_key(s):
             seen.append(s)
+            seenHash[s] = True
             next = s.possibleNext()
-            print len(seen), len(next)
-            current += next
+            if (len(seen) % 100 == 0):
+                print len(seen), len(current), len(next)
+	
+            #current += next
+	    for n in next:
+	        # Technically redundant, but gives better info.
+		if not seenHash.has_key(n):
+		    current.append(n)
     return seen
 
 
@@ -308,3 +322,120 @@ def sampleSudoku():
     sample[5,8] = 5
     
     return sample
+
+def sampleTough():
+    tough = Sudoku()
+    tough[2,0] = 1
+    tough[3,0] = 9
+    tough[6,0] = 3
+    tough[6,1] = 2
+    tough[0,2] = 7
+    tough[1,2] = 6
+    tough[4,2] = 2
+    tough[8,2] = 9
+    tough[0,3] = 3
+    tough[4,3] = 6
+    tough[8,3] = 5
+    tough[2,4] = 2
+    tough[3,4] = 1
+    tough[5,4] = 3
+    tough[6,4] = 4
+    tough[0,5] = 4
+    tough[4,5] = 9
+    tough[8,5] = 3
+    tough[0,6] = 1
+    tough[4,6] = 3
+    tough[7,6] = 9
+    tough[8,6] = 7
+    tough[2,7] = 4
+    tough[2,8] = 5
+    tough[5,8] = 8
+    tough[6,8] = 6
+    return tough
+
+def sampleMed():
+    med = Sudoku()
+    med[5,0] = 6
+    med[6,0] = 1
+    med[5,1] = 3
+    med[7,1] = 8
+    med[2,2] = 9
+    med[3,2] = 4
+    med[6,2] = 5
+    med[8,2] = 2
+    med[1,3] = 2
+    med[3,3] = 5
+    med[7,3] = 4
+    med[0,4] = 5
+    med[2,4] = 7
+    med[6,4] = 9
+    med[8,4] = 3
+    med[1,5] = 8
+    med[5,5] = 1
+    med[7,5] = 6
+    med[0,6] = 7
+    med[2,6] = 6
+    med[5,6] = 8
+    med[6,6] = 2
+    med[1,7] = 4
+    med[3,7] = 7
+    med[2,8] = 1
+    med[3,8] = 9
+    return med
+
+def sampleHard():
+    hard = Sudoku()
+    hard[3,0] = 2
+    hard[5,0] = 9
+    hard[2,1] = 7
+    hard[6,1] = 8
+    hard[1,2] = 3
+    hard[4,2] = 4
+    hard[7,2] = 6
+    hard[0,3] = 9
+    hard[8,3] = 7
+    hard[3,4] = 4
+    hard[4,4] = 8
+    hard[5,4] = 3
+    hard[0,5] = 2
+    hard[8,5] = 5
+    hard[1,6] = 4
+    hard[4,6] = 5
+    hard[7,6] = 9
+    hard[2,7] = 8
+    hard[6,7] = 3
+    hard[3,8] = 7
+    hard[5,8] = 6
+    return hard
+
+def sampleTele():
+    tele = Sudoku()
+    tele[1,0] = 6
+    tele[3,0] = 8
+    tele[6,0] = 1
+    tele[0,1] = 9
+    tele[3,1] = 6
+    tele[8,1] = 4
+    tele[2,2] = 2
+    tele[4,2] = 4
+    tele[5,2] = 7
+    tele[8,2] = 6
+    tele[2,3] = 8
+    tele[4,3] = 2
+    tele[5,3] = 1
+    tele[8,3] = 5
+    tele[0,5] = 2
+    tele[3,5] = 5
+    tele[4,5] = 6
+    tele[6,5] = 8
+    tele[0,6] = 1
+    tele[3,6] = 4
+    tele[4,6] = 3
+    tele[6,6] = 2
+    tele[0,7] = 5
+    tele[5,7] = 9
+    tele[8,7] = 8
+    tele[2,8] = 9
+    tele[5,8] = 5
+    tele[7,8] = 7
+    return tele
