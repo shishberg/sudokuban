@@ -3,33 +3,54 @@ import pygtk, gtk, pango
 
 from sudoku import *
 
-class BoardEntry(gtk.EventBox):
-    backgroundColour = gtk.gdk.Color(0xffff, 0xffff, 0xffff)
-    presetFont = pango.FontDescription('sans bold 18')
-    unsetFont = pango.FontDescription('sans 18')
-    presetColour = gtk.gdk.Color(0x0000, 0x0000, 0x0000)
-    unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)
+class Settings:
+    def __init__(self, filename):
+        self.filename = filename
 
-    minShade = 0x7fff
-    normalShade = [0xffff, 0xffff, 0xffff]
-    highlightBaseShades = [
-        (0xb7ff, 0xd7ff, 0xefff),
-        (0xb7ff, 0xefff, 0x97ff),
-        (0xefff, 0xb7ff, 0xb7ff)
-        ]
-    highlightShades = {}
-    for a in (True, False):
-        for b in (True, False):
-            for c in (True, False):
-                shade = normalShade[:]
-                for n in range(3):
-                    if not (a,b,c)[n]:
-                        for channel in range(3):
-                            shade[channel] = max(
-                                shade[channel] - 0xffff + highlightBaseShades[n][channel],
-                                minShade
-                                )
-                highlightShades[(a,b,c)] = gtk.gdk.Color(shade[0], shade[1], shade[2])
+        # Defaults
+        self.colourBackground = gtk.gdk.Color(0xffff, 0xffff, 0xffff)
+        self.colourBorder     = gtk.gdk.Color(0x3fff, 0x3fff, 0x3fff)
+        self.colourPreset     = gtk.gdk.Color(0x0000, 0x0000, 0x0000)
+        self.colourUnset      = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)
+        
+        self.colourRow        = gtk.gdk.Color(0xcfff, 0xcfff, 0xf7ff)
+        self.colourColumn     = gtk.gdk.Color(0xbfff, 0xf7ff, 0xbfff)
+        self.colourRegion     = gtk.gdk.Color(0xffff, 0xc7ff, 0xc7ff)
+
+        self.fontPreset = pango.FontDescription('sans bold 18')
+        self.fontUnset =  pango.FontDescription('sans 18')
+
+        # FIXME - load
+
+        # Highlighting shades
+        self.highlightShade = {}
+        for row in (True, False):
+            for col in (True, False):
+                for reg in (True, False):
+                    shade = gtk.gdk.Color(self.colourBackground.red,
+                                          self.colourBackground.green,
+                                          self.colourBackground.blue)
+
+                    if not row:
+                        shade.red   = max(shade.red   - 0xffff + self.colourRow.red,   0)
+                        shade.green = max(shade.green - 0xffff + self.colourRow.green, 0)
+                        shade.blue  = max(shade.blue  - 0xffff + self.colourRow.blue,  0)
+                    if not col:
+                        shade.red   = max(shade.red   - 0xffff + self.colourColumn.red,   0)
+                        shade.green = max(shade.green - 0xffff + self.colourColumn.green, 0)
+                        shade.blue  = max(shade.blue  - 0xffff + self.colourColumn.blue,  0)
+                    if not reg:
+                        shade.red   = max(shade.red   - 0xffff + self.colourRegion.red,   0)
+                        shade.green = max(shade.green - 0xffff + self.colourRegion.green, 0)
+                        shade.blue  = max(shade.blue  - 0xffff + self.colourRegion.blue,  0)
+                    
+                    self.highlightShade[(row, col, reg)] = shade
+        
+    def save(self):
+        pass
+
+
+class BoardEntry(gtk.EventBox):
 
     def __init__(self, cell, gui):
         gtk.EventBox.__init__(self)
@@ -60,16 +81,16 @@ class BoardEntry(gtk.EventBox):
                 self.cell.sets[1].isAvailable(self.gui.selectedValue),
                 self.cell.sets[2].isAvailable(self.gui.selectedValue)
                 )
-            self.modify_bg(gtk.STATE_NORMAL, BoardEntry.highlightShades[shadeKey])
+            self.modify_bg(gtk.STATE_NORMAL, settings.highlightShade[shadeKey])
         else:
-            self.modify_bg(gtk.STATE_NORMAL, BoardEntry.backgroundColour)
+            self.modify_bg(gtk.STATE_NORMAL, settings.colourBackground)
 
         if self.cell.state == CELL_PRESET:
-            self.label.modify_font(BoardEntry.presetFont)
-            self.label.modify_fg(gtk.STATE_NORMAL, BoardEntry.presetColour)
+            self.label.modify_font(settings.fontPreset)
+            self.label.modify_fg(gtk.STATE_NORMAL, settings.colourPreset)
         else:
-            self.label.modify_font(BoardEntry.unsetFont)
-            self.label.modify_fg(gtk.STATE_NORMAL, BoardEntry.unsetColour)
+            self.label.modify_font(settings.fontUnset)
+            self.label.modify_fg(gtk.STATE_NORMAL, settings.colourUnset)
             
         if self is self.gui.selection:
             self.set_state(gtk.STATE_SELECTED)
@@ -83,8 +104,6 @@ class BoardEntry(gtk.EventBox):
             self.set_size_request(requisition.width, requisition.width)
 
 class SudokuGUI:
-    borderColour = gtk.gdk.Color(0x3fff, 0x3fff, 0x3fff)
-    
     def __init__(self, board = SudokuBoard(), filename = None):
         openWindows.append(self)
 
@@ -111,7 +130,7 @@ class SudokuGUI:
         self.table = gtk.Table(regions[1], regions[0], True)
         self.table.set_row_spacings(5)
         self.table.set_col_spacings(5)
-        self.window.modify_bg(gtk.STATE_NORMAL, SudokuGUI.borderColour)
+        self.window.modify_bg(gtk.STATE_NORMAL, settings.colourBorder)
 
         self.entries = []
 
@@ -235,7 +254,7 @@ class SudokuGUI:
         return True
 
     def updateAll(self):
-        self.window.modify_bg(gtk.STATE_NORMAL, SudokuGUI.borderColour)
+        self.window.modify_bg(gtk.STATE_NORMAL, settings.colourBorder)
         for entry in self.entries:
             entry.update()
 
@@ -449,10 +468,10 @@ class ColourDialog(gtk.Dialog):
 
         self.row = 0
 
-        self.oldBackground = BoardEntry.backgroundColour
-        self.oldBorder = SudokuGUI.borderColour
-        self.oldPreset = BoardEntry.presetColour
-        self.oldUnset = BoardEntry.unsetColour
+        self.oldBackground = settings.colourBackground
+        self.oldBorder = settings.colourBorder
+        self.oldPreset = settings.colourPreset
+        self.oldUnset = settings.colourUnset
         #self.oldRows = BoardEntry.
 
         self.backgroundButton = self.createButton('Background', self.oldBackground)
@@ -483,22 +502,22 @@ class ColourDialog(gtk.Dialog):
         newColour = button.get_color()
 
         if button is self.backgroundButton:
-            BoardEntry.backgroundColour = newColour
+            settings.colourBackground = newColour
         elif button is self.borderButton:
-            SudokuGUI.borderColour = newColour
+            settings.colourBorder = newColour
         elif button is self.presetButton:
-            BoardEntry.presetColour = newColour
+            settings.colourPreset = newColour
         elif button is self.unsetButton:
-            BoardEntry.unsetColour = newColour
+            settings.colourUnset = newColour
 
         self.updateAll()
 
     def response(self, widget, data):
         if data == gtk.RESPONSE_CANCEL:
-            BoardEntry.backgroundColour = self.oldBackground
-            SudokuGUI.borderColour = self.oldBorder
-            BoardEntry.presetColour = self.oldPreset
-            BoardEntry.unsetColour = self.oldUnset
+            settings.colourBackground = self.oldBackground
+            settings.colourBorder = self.oldBorder
+            settings.colourPreset = self.oldPreset
+            settings.colourUnset = self.oldUnset
             self.updateAll()
 
         self.destroy()
@@ -522,8 +541,8 @@ class FontDialog(gtk.Dialog):
 
         self.row = 0
 
-        self.oldPreset = BoardEntry.presetFont
-        self.oldUnset = BoardEntry.unsetFont
+        self.oldPreset = settings.fontPreset
+        self.oldUnset = settings.fontUnset
 
         self.presetButton = self.createButton('Given numbers', self.oldPreset)
         self.unsetButton = self.createButton('Filled-in numbers', self.oldUnset)
@@ -550,16 +569,16 @@ class FontDialog(gtk.Dialog):
         newFont = pango.FontDescription(fontButton.get_font_name())
         
         if fontButton is self.presetButton:
-            BoardEntry.presetFont = newFont
+            settings.fontPreset = newFont
         elif fontButton is self.unsetButton:
-            BoardEntry.unsetFont = newFont
+            settings.fontUnset = newFont
 
         self.updateAll()
         
     def response(self, widget, data):
         if data == gtk.RESPONSE_CANCEL:
-            BoardEntry.presetFont = self.oldPreset
-            BoardEntry.unsetFont = self.oldUnset
+            settings.fontPreset = self.oldPreset
+            settings.fontUnset = self.oldUnset
             self.updateAll()
 
         self.destroy()
@@ -683,6 +702,7 @@ class NewPuzzleDialog(gtk.Dialog):
 
 
 openWindows = []
+settings = Settings('~/.sudoku-sensei')
 newDialog = None
 
 def openDialog(widget = None):
