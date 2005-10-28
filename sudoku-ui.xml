@@ -18,6 +18,7 @@
              <menu action="Hints">
                  <menuitem action="Solve"/>
                  <menuitem action="Scan"/>
+                 <menuitem action="Exclude"/>
              </menu>
              <menuitem action="CheckValid"/>
              <menuitem action="CheckSolvable"/>
@@ -31,6 +32,7 @@
       <separator/>
       <toolitem action="Solve"/>
       <toolitem action="Scan"/>
+      <toolitem action="Exclude"/>
       <separator/>
     </toolbar>
 </ui>

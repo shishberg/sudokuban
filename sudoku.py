@@ -489,14 +489,24 @@ class SudokuCell:
         # been warned.
         return cmp(self.coord, other.coord)
 
-    def possibleValues(self):
-        if self.cachedPossibleValues == None:
-            self.cachedPossibleValues = range(1, self.board.values + 1)
+    def possibleValues(self, excludeSelf = False):
+        if excludeSelf:
+            possible = None
+            exclude = self
+        else:
+            possible = self.cachedPossibleValues
+            exclude = None
+
+        if possible == None:
+            possible = range(1, self.board.values + 1)
 
             for set in self.sets:
-                self.cachedPossibleValues = [value for value in self.cachedPossibleValues if set.isAvailable(value)]
+                possible = [value for value in possible if set.isAvailable(value, exclude)]
 
-        return self.cachedPossibleValues
+        if not excludeSelf:
+            self.cachedPossibleValues = possible
+            
+        return possible
 
     def couldBe(self, value):
         if self.value:
@@ -539,18 +549,21 @@ class ExclusionSet:
 
         self.cachedIsAvailable = [None] * self.board.values
         
-    def isAvailable(self, value):
-        cached = self.cachedIsAvailable[value - 1]
-        if cached != None:
-            return cached
+    def isAvailable(self, value, exclude = None):
+        if not exclude:
+            cached = self.cachedIsAvailable[value - 1]
+            if cached != None:
+                return cached
 
         available = True
         for cell in self.cells:
-            if cell.value == value:
+            if (not cell is exclude) and (cell.value == value):
                 available = False
                 break
 
-        self.cachedIsAvailable[value - 1] = available
+        if not exclude:
+            self.cachedIsAvailable[value - 1] = available
+
         return available
 
     def add(self, cell):

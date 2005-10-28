@@ -384,7 +384,7 @@ class SudokuGUI:
                                       ('Solve', None, '_Solve', None, None, self.solve)
                                       ])
         self.actionGroup.add_toggle_actions([('Scan', None, '_Highlight', None, None, self.toggleScanHighlight),
-                                             ('Exclude', None, '_Disable excluded', None, None, self.toggleExclude)
+                                             ('Exclude', None, '_Restrict', None, None, self.toggleExclude)
                                              ])
 
         uimanager.insert_action_group(self.actionGroup, 0)
@@ -414,7 +414,7 @@ class SudokuGUI:
 
     def numberMenu(self, widget, cell, button = 0, eventTime = 0):
         if self.exclude:
-            values = [0] + cell.possibleValues()
+            values = [0] + cell.possibleValues(True)
         else:
             values = range(self.board.values + 1)
 
