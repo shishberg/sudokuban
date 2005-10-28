@@ -13,6 +13,7 @@ class BoardEntry(gtk.Entry):
         self.set_alignment(0.5)
         self.set_width_chars(2)
         self.set_has_frame(False)
+        self.set_editable(False)
 
     def update(self):
         if self.cell.value:
@@ -29,29 +30,11 @@ class SudokuGUI:
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.connect('destroy', self.destroy)
 
-        vbox = gtk.VBox(False, 0)
-        self.window.add(vbox)
-        vbox.show()
+        self.vbox = gtk.VBox(False, 0)
+        self.window.add(self.vbox)
+        self.vbox.show()
 
-        self.menubar = gtk.MenuBar()
-        vbox.add(self.menubar)
-        self.menubar.show()
-
-        fileMenu = gtk.MenuItem('File')
-        fileMenu.show()
-        self.menubar.append(fileMenu)
-
-        hintsMenuItem = gtk.MenuItem('Hints')
-        hintsMenuItem.show()
-        self.menubar.append(hintsMenuItem)
-
-        hintsMenu = gtk.Menu()
-        hintsMenuItem.set_submenu(hintsMenu)
-        
-        menuSolve = gtk.MenuItem('Solve')
-        menuSolve.connect('activate', self.solve)
-        menuSolve.show()
-        hintsMenu.append(menuSolve)
+        self.createActions()
 
         self.board = board
 
@@ -101,9 +84,26 @@ class SudokuGUI:
                                   regionY, regionY + 1)
                 regionTable.show()
 
-        vbox.add(self.table)
+        self.vbox.add(self.table)
         self.table.show()
         self.window.show()
+
+
+    def createActions(self):
+        uimanager = gtk.UIManager()
+        self.window.add_accel_group(uimanager.get_accel_group())
+
+        self.actionGroup = gtk.ActionGroup('SudokuSensei')
+        self.actionGroup.add_actions([('File', None, '_File'),
+                                      ('Quit', gtk.STOCK_QUIT, '_Quit', None, None, self.destroy),
+                                      ('Hints', None, '_Hints'),
+                                      ('Solve', None, '_Solve', None, None, self.solve)])
+
+        uimanager.insert_action_group(self.actionGroup, 0)
+
+        uimanager.add_ui_from_file('sudoku-ui.xml')
+        self.vbox.add(uimanager.get_widget('/MenuBar'))
+
 
     def numberMenu(self, widget, event, cell):
         if event.button == 3:
@@ -133,7 +133,7 @@ class SudokuGUI:
 
         entry.update()
 
-    def solve(self, widget):
+    def solve(self, action):
         solutions = self.board.solve(maxCount = 1)
         if solutions:
             for y in range(self.board.regionCount[1] * self.board.regionSize[1]):
