@@ -225,6 +225,18 @@ class SudokuBoard:
     def isSolved(self):
         return self.filled == self.cellCount
 
+    def isValid(self):
+        values = range(1, self.values + 1)
+        for set in self.sets:
+            available = values[:]
+            for cell in set.cells:
+                if cell.value:
+                    if not cell.value in available:
+                        return False
+                    available.remove(cell.value)
+
+        return True
+
     def __repr__(self):
         
         maxLength = len(str(self.values))

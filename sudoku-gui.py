@@ -141,7 +141,7 @@ class SudokuGUI:
     def setTitle(self):
         title = 'Sudoku Sensei'
         if self.filename:
-            title += ' - ' + os.path.basename(self.filename)
+            title = os.path.basename(self.filename) + ' - ' + title
 
         self.window.set_title(title)
 
@@ -162,10 +162,15 @@ class SudokuGUI:
 
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
         self.actionGroup.add_actions([('File', None, '_File'),
+                                      ('New', gtk.STOCK_NEW, '_New', '<Control>N', None, newDialog),
                                       ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', None, openDialog),
                                       ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', None, self.saveFile),
                                       ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', None, self.saveAsDialog),
                                       ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', None, self.destroy),
+                                      ('Puzzle', None, '_Puzzle'),
+                                      ('CheckValid', None, 'Check _Valid', None, None, self.checkValid),
+                                      ('CheckSolvable', None, 'Check _Solvable', None, None, self.checkSolvable),
+                                      ('Difficulty', None, '_Difficulty', None, None, self.difficulty),
                                       ('Hints', None, '_Hints'),
                                       ('Solve', None, '_Solve', None, None, self.solve)
                                       ])
@@ -225,6 +230,27 @@ class SudokuGUI:
         else:
             entry.update()
 
+    def checkValid(self, widget = None):
+        if self.board.isValid():
+            dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL,
+                                       gtk.MESSAGE_INFO, gtk.BUTTONS_OK)
+            dialog.set_markup('Puzzle is valid.')
+        else:
+            dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL,
+                                       gtk.MESSAGE_WARNING, gtk.BUTTONS_OK)
+            dialog.set_markup('Puzzle is not valid.')
+
+        dialog.connect('response', destroyDialog)
+        dialog.show()
+
+    def checkSolvable(self, widget = None):
+        # FIXME - progress bar
+        pass
+
+    def difficulty(self, widget = None):
+        # FIXME - progress bar
+        pass
+
     def solve(self, action):
         solutions = self.board.solve(maxCount = 1)
         if solutions:
@@ -279,10 +305,43 @@ class SudokuGUI:
             gtk.main_quit()
 
 
+class RandomPuzzleDialog(gtk.Dialog):
+    def __init__(self):
+        gtk.Dialog.__init__(self, 'Generate random puzzle',
+                            buttons = ('Create', gtk.RESPONSE_OK,
+                                       'Cancel', gtk.RESPONSE_CANCEL))
+
+        self.table = gtk.Table(2, 3)
+        self.table.set_row_spacings(5)
+        self.table.set_col_spacings(5)
+
+        sizeLabel = gtk.Label('Size')
+        sizeLabel.show()
+        self.widthSpin = gtk.SpinButton(gtk.Adjustment(3, 2, 6, 1, 1))
+        self.heightSpin = gtk.SpinButton(gtk.Adjustment(3, 2, 6, 1, 1))
+
+        self.table.attach(sizeLabel, 0, 1, 0, 1)
+        self.table.attach(self.widthSpin, 1, 2, 0, 1)
+        self.table.attach(self.heightSpin, 2, 3, 0, 1)
+        self.widthSpin.show()
+        self.heightSpin.show()
+
+        self.table.show()
+
+        self.vbox.add(self.table)
+        self.vbox.show()
+        self.show()
+        
+        
+
 # Global stuff
 
 
 openWindows = []
+
+
+def newDialog(widget = None):
+    dialog = RandomPuzzleDialog()
 
 
 def openDialog(widget = None):
@@ -301,7 +360,7 @@ def loadFromDialog(filedialog):
     newGui = SudokuGUI(readSudoku(filename), filename)
 
 
-def destroyFileDialog(widget):
+def destroyDialog(widget, data = None):
     widget.destroy()
 
     #if not openWindows:
