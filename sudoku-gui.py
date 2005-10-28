@@ -475,7 +475,6 @@ class SudokuGUI:
         toolbar = uimanager.get_widget('/Toolbar')
         self.vbox.pack_start(menubar, False, True, 0)
         self.vbox.pack_start(toolbar, False, True, 0)    
-        menubar.connect('button-press-event', self.clearSelection)
         toolbar.connect('button-press-event', self.clearSelection)
 
     def registerIcon(self, id, filename):

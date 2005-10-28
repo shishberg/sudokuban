@@ -29,9 +29,9 @@
     <toolbar name="Toolbar">
       <toolitem action="New"/>
       <toolitem action="Presets"/>
-      <toolitem action="Solve"/>
       <toolitem action="Highlight"/>
       <toolitem action="Exclude"/>
+      <toolitem action="Solve"/>
       <separator/>
     </toolbar>
 </ui>
