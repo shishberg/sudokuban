@@ -11,6 +11,8 @@ KEY_UP     = 65362
 KEY_RIGHT  = 65363
 KEY_DOWN   = 65364
 KEY_ARROWS = (KEY_LEFT, KEY_UP, KEY_RIGHT, KEY_DOWN)
+KEY_BACKSPACE = 65288
+KEY_DELETE    = 65535
 
 class Settings:
     def __init__(self, filename = None):
@@ -198,6 +200,15 @@ class BoardEntry(gtk.EventBox):
         elif requisition.height < requisition.width:
             self.set_size_request(requisition.width, requisition.width)
 
+    def setValue(self, value):
+        self.cell.setValue(value)
+        if value:
+            self.gui.selectedValue = value
+        
+        if self.gui.scanHighlight:
+            self.gui.updateAll()
+        else:
+            self.update()
 
 class SudokuGUI:
     def __init__(self, board = SudokuBoard(), filename = None):
@@ -274,10 +285,15 @@ class SudokuGUI:
                 self.digitKeys += keyStr
                 while self.digitKeys:
                     value = int(self.digitKeys)
-                    if 0 < value and value <= self.board.values:
+                    if 0 < value and value <= self.board.values and \
+                       (not self.exclude or value in self.selection.cell.possibleValues()):
                         self.setEntry(self.selection, value)
                         return True
                     self.digitKeys = self.digitKeys[1:]
+        elif key == KEY_BACKSPACE or key == KEY_DELETE:
+            if self.selection:
+                self.digitKeys = ''
+                self.setEntry(self.selection, 0)
         elif key in KEY_ARROWS:
             if self.selection:
                 (x, y) = self.selection.cell.coord
@@ -425,15 +441,9 @@ class SudokuGUI:
 
     def setEntry(self, entry, value):
         if value:
-            entry.cell.setValue(value)
+            entry.setValue(value)
         else:
-            entry.cell.setValue(None)
-
-        self.setSelection(entry)
-        #if self.scanHighlight:
-        #    self.updateAll()
-        #else:
-        #    entry.update()
+            entry.setValue(None)
 
     def checkValid(self, widget = None):
         if self.board.isValid():
