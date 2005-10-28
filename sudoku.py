@@ -1,28 +1,29 @@
-def readSudoku(filename, regionSize = (3, 3), regionCount = (3, 3)):
-    board = SudokuBoard(regionSize, regionCount)
+import sys, math
+
+def readSudoku(filename):
+    
     infile = file(filename)
-    x = 0
-    y = 0
+    numbers = []
     for line in infile.readlines():
-        if regionSize[0] * regionSize[1] < 10:
-	    cells = line
-	else:
-	    if '+' in line:
-	        cells = line
-	    else:
-	        line = line.replace('|',',').replace('+',',').replace('-',',')
-		if len(line) == (regionSize[0] * regionSize[1]) - 2:
-		    line = line[1:-1]
-	        cells = [cell.strip() or ' ' for cell in line.split(',')]
-        for c in cells:
-            if c.isdigit():
-                board[x, y] = int(c)
-            elif c != ' ':
-                continue
-            x += 1
-            if x >= regionSize[0] * regionCount[0]:
-                x = 0
-                y += 1
+        if ' ' in line:
+            cells = line.replace('|', ' ').split()
+        else:
+            cells = line
+            
+        for cell in cells:
+            intstr = ''.join([c for c in cell if c.isdigit()])
+            if intstr:
+                numbers.append(int(intstr))
+            else:
+                if '.' in cell:
+                    numbers.append(None)
+
+    size = int(math.sqrt(math.sqrt(len(numbers))))
+    board = SudokuBoard((size, size), (size, size))
+    numbers.reverse()
+    for y in range(size * size):
+        for x in range(size * size):
+            board[x, y] = numbers.pop()
 
     return board
     
@@ -378,12 +379,19 @@ def sample():
 
     return sample
 
-s1 = readSudoku('easy.txt')
-s2 = readSudoku('moderate.txt')
-s3 = readSudoku('medium.txt')
-s4 = readSudoku('challenging.txt')
-s5 = readSudoku('tough.txt')
-s6 = readSudoku('deadend.txt')
-four = readSudoku('4x4.txt', (4,4), (4,4))
-sList = [s1, s2, s3, s4, s5, s6]
+#s1 = readSudoku('easy.txt')
+#s2 = readSudoku('moderate.txt')
+#s3 = readSudoku('medium.txt')
+#s4 = readSudoku('challenging.txt')
+#s5 = readSudoku('tough.txt')
+#s6 = readSudoku('deadend.txt')
+#four = readSudoku('4x4.txt', (4,4), (4,4))
+#sList = [s1, s2, s3, s4, s5, s6]
 
+if __name__ == '__main__':
+    for filename in sys.argv[1:]:
+        print filename
+        sudoku = readSudoku(filename)
+        solutions = sudoku.solve()
+        for board in solutions:
+            print board
