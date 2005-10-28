@@ -48,6 +48,11 @@ class BoardEntry(gtk.EventBox):
         else:
             self.modify_bg(gtk.STATE_NORMAL, BoardEntry.backgroundColour)
 
+        if self is self.gui.selection:
+            self.set_state(gtk.STATE_SELECTED)
+        else:
+            self.set_state(gtk.STATE_NORMAL)
+
 class SudokuGUI:
     presetFont = pango.FontDescription('sans bold 18')
     unsetFont = pango.FontDescription('sans normal 18')
@@ -122,7 +127,6 @@ class SudokuGUI:
         self.table.show()
         self.window.show()
 
-
     def setTitle(self):
         title = 'Sudoku Sensei'
         if self.filename:
@@ -131,8 +135,11 @@ class SudokuGUI:
         self.window.set_title(title)
 
     def setSelection(self, widget, data = None):
+        oldSelection = self.selection
         self.selection = widget
-        if self.selection.cell.value:
+        oldSelection.update()
+        self.selection.update()
+        if self.selection.cell.value and self.selection.cell.value != self.selectedValue:
             self.selectedValue = self.selection.cell.value
             if self.sweepHighlight:
                 self.updateAll()
@@ -158,6 +165,10 @@ class SudokuGUI:
 
     def toggleSweepHighlight(self, action):
         self.sweepHighlight = action.get_active()
+        if self.selection:
+            self.selectedValue = self.selection.cell.value
+        else:
+            self.selectedValue = 0
         self.updateAll()
 
     def clickInCell(self, widget, event, cell):
