@@ -12,6 +12,7 @@
         </menu>
         <menu action="Settings">
              <menuitem action="Fonts"/>
+             <menuitem action="Colours"/>
         </menu>
         <menu action="Puzzle">
              <menu action="Hints">
