@@ -96,7 +96,7 @@ class SudokuGUI:
         regions = self.board.regionCount
         regionSize = self.board.regionSize
         
-        self.table = gtk.Table(regions[0], regions[1], True)
+        self.table = gtk.Table(regions[1], regions[0], True)
         self.table.set_row_spacings(5)
         self.table.set_col_spacings(5)
         self.window.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0x3fff, 0x3fff, 0x3fff))
@@ -105,7 +105,7 @@ class SudokuGUI:
 
         for regionY in range(regions[1]):
             for regionX in range(regions[0]):
-                regionTable = gtk.Table(regionSize[0], regionSize[1], True)
+                regionTable = gtk.Table(regionSize[1], regionSize[0], True)
                 regionTable.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0, 0))
                 regionTable.set_row_spacings(1)
                 regionTable.set_col_spacings(1)
