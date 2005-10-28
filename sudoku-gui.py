@@ -1,4 +1,4 @@
-import os
+import os, sys
 import pygtk, gtk, pango
 
 from sudoku import *
@@ -109,7 +109,7 @@ class SudokuGUI:
 
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
         self.actionGroup.add_actions([('File', None, '_File'),
-                                      ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', None, self.openDialog),
+                                      ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', None, openDialog),
                                       ('Quit', gtk.STOCK_QUIT, '_Quit', None, None, self.destroy),
                                       ('Hints', None, '_Hints'),
                                       ('Solve', None, '_Solve', None, None, self.solve)])
@@ -157,24 +157,6 @@ class SudokuGUI:
 
             for entry in self.entries:
                 entry.update()
-    
-    def main(self):
-        gtk.main()
-
-    def openDialog(self, widget = None):
-        # FIXME - save changes?
-
-        self.filedialog = gtk.FileSelection('Open Sudoku puzzle')
-        self.filedialog.ok_button.connect('clicked', self.loadFromDialog)
-        self.filedialog.cancel_button.connect('clicked', lambda w: filedialog.destroy())
-        self.filedialog.show()
-
-    def loadFromDialog(self, widget):
-        filename = self.filedialog.get_filename()
-        
-        self.filedialog.destroy()
-
-        newGui = SudokuGUI(readSudoku(filename), filename)
 
     def destroy(self, widget, data = None):
         if self in openWindows:
@@ -185,6 +167,32 @@ class SudokuGUI:
         else:
             gtk.main_quit()
 
+def openDialog(widget = None):
+    filedialog = gtk.FileSelection('Open Sudoku puzzle')
+    filedialog.ok_button.connect_object('clicked', loadFromDialog, filedialog)
+    filedialog.cancel_button.connect_object('clicked', destroyFileDialog, filedialog)
+    filedialog.show()
+
+
+def loadFromDialog(filedialog):
+    filename = filedialog.get_filename()
+    
+    filedialog.destroy()
+
+    newGui = SudokuGUI(readSudoku(filename), filename)
+
+
+def destroyFileDialog(widget):
+    widget.destroy()
+
+    if not openWindows:
+        gtk.main_quit()
+    
 if __name__ == '__main__':
-    gui = SudokuGUI(readSudoku('sample.txt'))
-    gui.main()
+    args = sys.argv[1:]
+    if args:
+        for filename in args:
+            newGui = SudokuGUI(readSudoku(filename), filename)
+    else:
+        openDialog()
+    gtk.main()
