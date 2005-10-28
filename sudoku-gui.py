@@ -42,6 +42,7 @@ class SudokuGUI:
                         entry.set_has_frame(False)
 
                         cell = self.board[cellX, cellY]
+                        entry.cell = cell
                         if cell.value:
                             entry.set_text(str(cell.value))
                             entry.modify_font(SudokuGUI.presetFont)
@@ -79,12 +80,13 @@ class SudokuGUI:
 
             menu.popup(None, None, None, event.button, event.time)
 
-    def setEntry(self, widget, value):
+    def setEntry(self, entry, value):
         if value:
-            widget.set_text(str(value))
+            entry.set_text(str(value))
+            entry.cell.setValue(value)
         else:
-            widget.set_text('')
-        
+            entry.set_text('')
+            entry.cell.setValue(None)
     
     def main(self):
         gtk.main()
