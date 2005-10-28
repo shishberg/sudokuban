@@ -14,6 +14,51 @@ KEY_ARROWS = (KEY_LEFT, KEY_UP, KEY_RIGHT, KEY_DOWN)
 KEY_BACKSPACE = 65288
 KEY_DELETE    = 65535
 
+# Tooltips. TODO: i18n.
+tipNew = 'Create a new empty or random puzzle.'
+
+tipOpen = 'Load a puzzle from a file.'
+
+tipSave = 'Save a puzzle to a file.'
+
+tipSaveAs = 'Save a puzzle to a new location.'
+
+tipClose = 'Close the current puzzle window.'
+
+tipQuit = 'Exit Sudoku Sensei.'
+
+tipFonts = 'Edit fonts used in the main window.'
+
+tipColours = 'Edit colours used in the main window.'
+
+tipSolve = 'Find a solution for the current puzzle. If there are multiple solutions, it will only find one.'
+
+tipHighlight = 'Colour squares that are in the same row, column or region as the selected number anywhere in the puzzle. Squares that are not coloured could be that number.'
+
+tipExclude = 'Restricts input to numbers that are available for the current square. Right-click on a square to see which numbers it could be.'
+
+tipPresets = 'Edit the pre-given numbers in the puzzle. You should only need to do this when creating or entering a new puzzle.'
+
+tipCheckValid = 'Check whether all numbers entered so far are unique in their row, column and region.'
+
+tipCheckSolvable = 'Check whether the puzzle can be solved from this point. This will tell you whether the puzzle is solvable, unsolvable or has multiple solutions.'
+
+tipDifficulty = 'Estimate the difficulty of this puzzle. The difficulty ratings are, in order: Easy, Moderate, Challenging, Tough, Outrageous.'
+
+tipNewWidth = 'The width of each region, and the number of regions vertically.'
+
+tipNewHeight = 'The height of each region, and the number of regions horizontally.'
+
+tipNewEmpty = 'Create a blank puzzle.'
+
+tipNewRandom = 'Generate a random puzzle.'
+
+tipNewSymmetrical = 'Makes the new puzzle symmetrical.'
+
+tipNewCrossHatchOnly = 'Make the puzzle solvable using only "cross-hatching" - looking for intersections in each region between rows and columns that have the same number. This tends to make the puzzle easier.'
+
+tipNewLookAhead = 'The maximum number of steps in solving the puzzle that require you to "look ahead" to determine some numbers. Values above zero tend to make the puzzle much more difficult.'
+
 class Settings:
     def __init__(self, filename = None):
         self.filename = filename
@@ -281,6 +326,10 @@ class SudokuGUI:
                                   regionY, regionY + 1)
                 regionTable.show()
 
+        # Empty board starts off editing presets
+        if self.board.filled == 0:
+            self.actionGroup.get_action('Presets').set_active(True)
+
         self.vbox.add(self.table)
         self.table.show()
         self.window.show()
@@ -360,11 +409,17 @@ class SudokuGUI:
         self.selection = widget
         if oldSelection:
             oldSelection.update()
-        self.selection.update()
-        if self.selection.cell.value and self.selection.cell.value != self.selectedValue:
-            self.selectedValue = self.selection.cell.value
-            if self.scanHighlight:
-                self.updateAll()
+        if self.selection:
+            self.selection.update()
+            if self.selection.cell.value and self.selection.cell.value != self.selectedValue:
+                self.selectedValue = self.selection.cell.value
+                if self.scanHighlight:
+                    self.updateAll()
+        else:
+            if self.selectedValue:
+                self.selectedValue = 0
+                if self.scanHighlight:
+                    self.updateAll()
                 
         if not oldSelection is widget:
             self.digitKeys = ''
@@ -383,34 +438,37 @@ class SudokuGUI:
 
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
         self.actionGroup.add_actions([('File', None, '_File'),
-                                      ('New', gtk.STOCK_NEW, '_New', '<Control>N', None, newPuzzleDialog),
-                                      ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', None, openDialog),
-                                      ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', None, self.saveFile),
-                                      ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', None, self.saveAsDialog),
-                                      ('Close', gtk.STOCK_CLOSE, '_Close', '<Control>W', None, self.destroy),
-                                      ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', None, quit),
+                                      ('New', gtk.STOCK_NEW, '_New', '<Control>N', tipNew, newPuzzleDialog),
+                                      ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', tipOpen, openDialog),
+                                      ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', tipSave, self.saveFile),
+                                      ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', tipSaveAs, self.saveAsDialog),
+                                      ('Close', gtk.STOCK_CLOSE, '_Close', '<Control>W', tipClose, self.destroy),
+                                      ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', tipQuit, quit),
                                       ('Settings', None, '_Settings'),
-                                      ('Fonts', gtk.STOCK_SELECT_FONT, '_Fonts', None, None, fontsDialog),
-                                      ('Colours', gtk.STOCK_SELECT_COLOR, '_Colours', None, None, coloursDialog),
+                                      ('Fonts', gtk.STOCK_SELECT_FONT, '_Fonts', None, tipFonts, fontsDialog),
+                                      ('Colours', gtk.STOCK_SELECT_COLOR, '_Colours', None, tipColours, coloursDialog),
                                       ('Puzzle', None, '_Puzzle'),
-                                      ('CheckValid', None, 'Check _Valid', None, None, self.checkValid),
-                                      ('CheckSolvable', None, 'Check _Solvable', None, None, self.checkSolvable),
-                                      ('Difficulty', None, '_Difficulty', None, None, self.difficulty),
+                                      ('CheckValid', None, 'Check _Valid', None, tipCheckValid, self.checkValid),
+                                      ('CheckSolvable', None, 'Check _Solvable', None, tipCheckSolvable, self.checkSolvable),
+                                      ('Difficulty', None, '_Difficulty', None, tipDifficulty, self.difficulty),
                                       ('Hints', None, '_Hints'),
-                                      ('Solve', 'sudoku-solve', '_Solve', None, None, self.solve)
+                                      ('Solve', 'sudoku-solve', '_Solve', None, tipSolve, self.solve)
                                       ])
-        self.actionGroup.add_toggle_actions([('Presets', 'sudoku-presets', '_Presets', None, None, self.togglePreset),
-                                             ('Highlight', 'sudoku-highlight', '_Highlight', None, None, self.toggleScanHighlight),
-                                             ('Exclude', 'sudoku-exclude', '_Restrict', None, None, self.toggleExclude)
+        self.actionGroup.add_toggle_actions([('Presets', 'sudoku-presets', '_Presets', None, tipPresets, self.togglePreset),
+                                             ('Highlight', 'sudoku-highlight', '_Highlight', None, tipHighlight, self.toggleScanHighlight),
+                                             ('Exclude', 'sudoku-exclude', '_Restrict', None, tipExclude, self.toggleExclude)
                                              ])
 
         uimanager.insert_action_group(self.actionGroup, 0)
 
         uimanager.add_ui_from_file('sudoku-ui.xml')
-        self.vbox.pack_start(uimanager.get_widget('/MenuBar'),
-                             False, True, 0)
-        self.vbox.pack_start(uimanager.get_widget('/Toolbar'),
-                             False, True, 0)
+
+        menubar = uimanager.get_widget('/MenuBar')
+        toolbar = uimanager.get_widget('/Toolbar')
+        self.vbox.pack_start(menubar, False, True, 0)
+        self.vbox.pack_start(toolbar, False, True, 0)    
+        menubar.connect('button-press-event', self.clearSelection)
+        toolbar.connect('button-press-event', self.clearSelection)
 
     def registerIcon(self, id, filename):
         try:
@@ -419,6 +477,9 @@ class SudokuGUI:
             self.iconFactory.add(id, iconset)
         except:
             pass
+
+    def clearSelection(self, widget, data = None):
+        self.setSelection(None)
 
     def toggleScanHighlight(self, action):
         self.scanHighlight = action.get_active()
@@ -820,6 +881,8 @@ class NewPuzzleDialog(gtk.Dialog):
 
         self.set_modal(True)
 
+        tooltips = gtk.Tooltips()
+
         sizeLabel = gtk.Label('Size')
         sizeLabel.show()
         xLabel = gtk.Label('x')
@@ -828,6 +891,8 @@ class NewPuzzleDialog(gtk.Dialog):
         self.heightSpin = gtk.SpinButton(gtk.Adjustment(3, 1, 6, 1, 1))
         self.widthSpin.show()
         self.heightSpin.show()
+        tooltips.set_tip(self.widthSpin, tipNewWidth)
+        tooltips.set_tip(self.heightSpin, tipNewHeight)
 
         sizeBox = gtk.HBox(spacing = 5)
         sizeBox.show()
@@ -841,18 +906,23 @@ class NewPuzzleDialog(gtk.Dialog):
         self.radioEmpty.show()
         self.radioRandom = gtk.RadioButton(self.radioEmpty, 'Random puzzle')
         self.radioRandom.show()
+        tooltips.set_tip(self.radioEmpty, tipNewEmpty)
+        tooltips.set_tip(self.radioRandom, tipNewRandom)
 
         self.radioRandom.connect('toggled', self.toggleRandom)
 
         self.symmetricalCheck = gtk.CheckButton('Symmetrical')
         self.symmetricalCheck.set_active(True)
-        self.scanCheck = gtk.CheckButton('Scanning only')
+        self.scanCheck = gtk.CheckButton('Cross-hatching only')
         self.scanCheck.set_active(False)
+        tooltips.set_tip(self.symmetricalCheck, tipNewSymmetrical)
+        tooltips.set_tip(self.scanCheck, tipNewCrossHatchOnly)
 
-        branchLabel = gtk.Label('Maximum branches')
+        branchLabel = gtk.Label('Maximum look-ahead')
         branchLabel.show()
         self.branchSpin = gtk.SpinButton(gtk.Adjustment(0, 0, 5, 1, 1))
         self.branchSpin.show()
+        tooltips.set_tip(self.branchSpin, tipNewLookAhead)
 
         self.branchBox = gtk.HBox(spacing = 5)
         self.branchBox.add(branchLabel)
