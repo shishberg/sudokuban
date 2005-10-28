@@ -10,8 +10,12 @@ class BoardEntry(gtk.EventBox):
     highlightShades = [
         (0xafff, 0xcfff, 0xefff), # Blue
         (0xafff, 0xefff, 0x8fff), # Green
-        (0xefff, 0xafff, 0xafff) # Red
+        (0xefff, 0xafff, 0xafff)  # Red
         ]
+    presetFont = pango.FontDescription('sans bold 18')
+    unsetFont = pango.FontDescription('sans normal 18')
+    presetColour = gtk.gdk.Color(0x0000, 0x0000, 0x0000)
+    unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)    
 
     def __init__(self, cell, gui):
         gtk.EventBox.__init__(self)
@@ -26,8 +30,9 @@ class BoardEntry(gtk.EventBox):
 
         self.connect('button_press_event', gui.clickInCell, self.cell)
         self.connect('popup_menu', gui.numberMenu, self.cell)
-        #self.connect('focus', gui.setSelection)
         self.connect('size-request', self.setSizeRequest)
+
+        self.update()
 
     def update(self):
         if self.cell.value:
@@ -49,23 +54,25 @@ class BoardEntry(gtk.EventBox):
         else:
             self.modify_bg(gtk.STATE_NORMAL, BoardEntry.backgroundColour)
 
+        if self.cell.state == CELL_PRESET:
+            self.label.modify_font(BoardEntry.presetFont)
+            self.label.modify_fg(gtk.STATE_NORMAL, BoardEntry.presetColour)
+        else:
+            self.label.modify_font(BoardEntry.unsetFont)
+            self.label.modify_fg(gtk.STATE_NORMAL, BoardEntry.unsetColour)
+            
         if self is self.gui.selection:
             self.set_state(gtk.STATE_SELECTED)
         else:
             self.set_state(gtk.STATE_NORMAL)
 
     def setSizeRequest(self, widget, requisition):
-        #print requisition.width, requisition.height
         if requisition.width < requisition.height:
             self.set_size_request(requisition.height, requisition.height)
         elif requisition.height < requisition.width:
             self.set_size_request(requisition.width, requisition.width)
 
 class SudokuGUI:
-    presetFont = pango.FontDescription('sans bold 18')
-    unsetFont = pango.FontDescription('sans normal 18')
-    unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)
-    
     def __init__(self, board = SudokuBoard(), filename = None):
         openWindows.append(self)
 
@@ -115,14 +122,6 @@ class SudokuGUI:
                         entry = BoardEntry(cell, self)
                         self.entries.append(entry)
                         
-                        if cell.value:
-                            entry.label.modify_font(SudokuGUI.presetFont)
-                        else:
-                            entry.label.modify_font(SudokuGUI.unsetFont)
-                            entry.label.modify_fg(gtk.STATE_NORMAL, SudokuGUI.unsetColour)
-
-                        entry.update()
-
                         regionTable.attach(entry, x, x + 1, y, y + 1)
                         entry.show()
 

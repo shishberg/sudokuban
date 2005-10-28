@@ -1,29 +1,39 @@
 import sys, math
 
+CELL_PRESET = 0
+CELL_UNSET  = 1
+
 def readSudoku(filename):
     
     infile = file(filename)
     numbers = []
     for line in infile.readlines():
-        if ' ' in line:
-            cells = line.replace('|', ' ').split()
-        else:
-            cells = line
-            
-        for cell in cells:
-            intstr = ''.join([c for c in cell if c.isdigit()])
-            if intstr:
-                numbers.append(int(intstr))
+        preset = True
+        cur = ''
+        for char in line:
+            if char == '.' or char.isdigit():
+                cur += char
             else:
-                if '.' in cell:
-                    numbers.append(None)
-
+                if cur:
+                    cur = cur.replace('.', '')
+                    if cur.isdigit():
+                        numbers.append((int(cur), preset))
+                    else:
+                        numbers.append((None, False))
+                    cur = ''
+                    preset = True
+                if char == '*':
+                    preset = False
+    
     size = int(math.sqrt(math.sqrt(len(numbers))))
     board = SudokuBoard((size, size), (size, size))
     numbers.reverse()
     for y in range(size * size):
         for x in range(size * size):
-            board[x, y] = numbers.pop()
+            (value, preset) = numbers.pop()
+            board[x, y] = value
+            if preset:
+                board[x, y].state = CELL_PRESET
 
     return board
     
@@ -72,22 +82,22 @@ class SudokuBoard:
         newBoard = SudokuBoard(self.regionSize, self.regionCount)
         for y in range(self.size[1]):
             for x in range(self.size[0]):
-                newBoard[x, y] = self[x, y].value
+                newCell = newBoard[x, y]
+                oldCell = self[x, y]
+                newCell.setValue(oldCell.value)
+                newCell.state = oldCell.state
 
         return newBoard
 
     def __repr__(self):
         
         maxLength = len(str(self.values))
-        if maxLength > 1:
-            maxLength += 1
-        cellPrint = '%' + str(maxLength) + 'd'
-        emptyCell = ' ' * maxLength
+        emptyCell = '.' * maxLength
 
         divider = ''
         for xRegion in range(self.regionCount[0]):
             divider += '+'
-            for xSquare in range(self.regionSize[0] * maxLength):
+            for xSquare in range(self.regionSize[0] * (maxLength + 1)):
                 divider += '-'
         divider += '+\n'
 
@@ -100,9 +110,17 @@ class SudokuBoard:
                     for xSquare in range(self.regionSize[0]):
                         cell = self.cells[yRegion + ySquare][xRegion + xSquare]
                         if cell.value:
-                            board += cellPrint % cell.value
+                            if cell.state == CELL_UNSET:
+                                board += '*'
+                            else:
+                                board += ' '
+                                
+                            cellStr = str(cell.value)
+                            while len(cellStr) < maxLength:
+                                cellStr = '.' + cellStr
+                            board += cellStr
                         else:
-                            board += emptyCell
+                            board += ' ' + emptyCell
                 board += '|\n'
         board += divider + '\n'
 
@@ -264,6 +282,7 @@ class SudokuCell:
         self.board = board
         self.coord = coord
         self.sets = []
+        self.state = CELL_UNSET
 
         self.clearCache()
 
