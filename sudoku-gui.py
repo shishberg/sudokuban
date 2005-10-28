@@ -1,75 +1,74 @@
-from wxPython.wx import *
-from wxPython.grid import *
+import pygtk
+import gtk
+import pango
+
 from sudoku import *
 
-class BoardGrid(wxGrid):
-    givenNumberFont = wxFont(24, wxSWISS, wxNORMAL, wxBOLD)
-    userNumberFont = wxFont(24, wxSWISS, wxNORMAL, wxNORMAL)
-    regionBorderSize = 3
+class SudokuGUI:
+    presetFont = pango.FontDescription('sans bold 16')
+    unsetFont = pango.FontDescription('sans normal 16')
+    unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)
     
-    def __init__(self, parent, board):
-        wxGrid.__init__(self, parent, -1)
+    def __init__(self, board):
+        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window.connect('destroy', self.destroy)
 
         self.board = board
 
-        regionSize = board.regionSize
-        regionCount = board.regionCount
-        size = (regionSize[0] * regionCount[0],
-                regionSize[1] * regionCount[1])
-        gridSize = (size[0] + regionCount[0] - 1,
-                    size[1] + regionCount[1] - 1)
+        regions = self.board.regionCount
+        regionSize = self.board.regionSize
         
-        self.CreateGrid(gridSize[0], gridSize[1])
-        self.DisableDragColSize()
-        self.DisableDragRowSize()
-
-        self.SetRowMinimalAcceptableHeight(BoardGrid.regionBorderSize)
-        self.SetColMinimalAcceptableWidth(BoardGrid.regionBorderSize)
-
-        for y in range(gridSize[1]):
-            if (y + 1) % (regionSize[1] + 1) == 0:
-                self.SetRowSize(y, BoardGrid.regionBorderSize)
-                for x in range(gridSize[0]):
-                    self.SetCellBackgroundColour(x, y, wxBLACK)
-                continue
-            
-            self.SetRowSize(y, 30)
-            
-            for x in range(gridSize[0]):
-                if (x + 1) % (regionSize[0] + 1) == 0:
-                    if y == 0:
-                        self.SetColSize(x, BoardGrid.regionBorderSize)
-                        self.SetCellBackgroundColour(x, y, wxBLACK)
-                    continue
-                
-                if y == 0:
-                    self.SetColSize(x, 30)
-
-                boardX = x - (x / (regionSize[0] + 1))
-                boardY = y - (y / (regionSize[1] + 1))
-
-                self.SetCellAlignment(x, y, wxALIGN_CENTRE, wxALIGN_CENTRE)
-                
-                cell = board[boardX, boardY]
-                if cell.value:
-                    self.SetCellValue(x, y, str(cell.value))
-                    self.SetCellFont(x, y, BoardGrid.givenNumberFont)
-                else:
-                    self.SetCellFont(x, y, BoardGrid.userNumberFont)
-
-class BoardFrame(wxFrame):
-    def __init__(self, board):
-        wxFrame.__init__(self, None, -1, "Sudoku")
-        grid = BoardGrid(self, board)        
-
-class SudokuApp(wxApp):
-    def OnInit(self):
-        frame = BoardFrame(readSudoku('sample.txt'))
-        frame.Show(True)
-        self.SetTopWindow(frame)
-        return True
+        self.table = gtk.Table(regions[0], regions[1], True)
+        self.table.set_row_spacings(5)
+        self.table.set_col_spacings(5)
+        self.window.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0x3fff, 0x3fff, 0x3fff))
         
+        for regionY in range(regions[1]):
+            for regionX in range(regions[0]):
+                regionTable = gtk.Table(regionSize[0], regionSize[1], True)
+                regionTable.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0, 0))
+                regionTable.set_row_spacings(1)
+                regionTable.set_col_spacings(1)
+
+                xStart = regionX * regionSize[0]
+                yStart = regionY * regionSize[1]
+                for y in range(regionSize[1]):
+                    for x in range(regionSize[0]):
+                        cellX = xStart + x
+                        cellY = yStart + y
+                        entry = gtk.Entry(2)
+                        entry.set_alignment(0.5)
+                        entry.set_width_chars(2)
+                        entry.set_has_frame(False)
+
+                        cell = self.board[cellX, cellY]
+                        if cell.value:
+                            entry.set_text(str(cell.value))
+                            entry.modify_font(SudokuGUI.presetFont)
+                        else:
+                            entry.modify_font(SudokuGUI.unsetFont)
+                            entry.modify_text(gtk.STATE_NORMAL, SudokuGUI.unsetColour)
+
+                        regionTable.attach(entry, x, x + 1, y, y + 1)
+                        entry.show()
+
+                self.table.attach(regionTable,
+                                  regionX, regionX + 1,
+                                  regionY, regionY + 1)
+                regionTable.show()
+                
+
+        self.window.add(self.table)
+        self.table.show()
+        self.window.show()
+    
+    def main(self):
+        gtk.main()
+
+    def destroy(self, widget, data = None):
+        gtk.main_quit()
+
 if __name__ == '__main__':
-    app = SudokuApp(0)
-    app.MainLoop()
+    gui = SudokuGUI(readSudoku('sample.txt'))
+    gui.main()
     
