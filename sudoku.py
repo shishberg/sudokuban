@@ -64,14 +64,16 @@ def writeSudoku(board, filename):
     out.write(str(board))
     out.close()
 
-def randomCompleted(size = (3, 3)):
+def randomCompleted(size = (3, 3), progress = None, cancel = None):
     board = SudokuBoard((size[0], size[1]), (size[1], size[0]))
-    return board.solve(maxCount = 1, shuffle = True)[0]
+    solution = board.solve(maxCount = 1, shuffle = True,
+                           progress = progress, cancel = cancel)
+    return solution[0]
 
-def randomPuzzleSystematic(size = (3, 3), maxBranch = 0,
-                           symmetrical = True):
+def randomPuzzle(size = (3, 3), maxBranch = 0, symmetrical = True,
+                 progress = None, fraction = None, cancel = None):
 
-    board = randomCompleted(size)
+    board = randomCompleted(size, progress=progress, cancel=cancel)
     width = size[0] * size[1]
     if symmetrical:
         cells = range(width * width / 2 + 1)
@@ -80,7 +82,16 @@ def randomPuzzleSystematic(size = (3, 3), maxBranch = 0,
 
     random.shuffle(cells)
 
+    count = 0.0
+
     for n in cells:
+        if fraction:
+            fraction(count / len(cells))
+            count += 1.0
+        if cancel:
+            if cancel():
+                return None
+            
         x = n % width
         y = n / width
 

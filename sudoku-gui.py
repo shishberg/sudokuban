@@ -13,9 +13,9 @@ class BoardEntry(gtk.EventBox):
     minShade = 0x7fff
     normalShade = [0xffff, 0xffff, 0xffff]
     highlightBaseShades = [
-        (0xafff, 0xcfff, 0xefff), # Blue
-        (0xafff, 0xefff, 0x8fff), # Green
-        (0xefff, 0xafff, 0xafff)  # Red
+        (0xb7ff, 0xd7ff, 0xefff), # Blue
+        (0xb7ff, 0xefff, 0x97ff), # Green
+        (0xefff, 0xb7ff, 0xb7ff)  # Red
         ]
     highlightShades = {}
     for a in (True, False):
@@ -426,32 +426,104 @@ class ProgressDialog(gtk.Dialog):
             gtk.main_iteration()
 
 
-class RandomPuzzleDialog(gtk.Dialog):
+class NewPuzzleDialog(gtk.Dialog):
     def __init__(self):
-        gtk.Dialog.__init__(self, 'Generate random puzzle',
+        gtk.Dialog.__init__(self, 'New puzzle',
                             buttons = (gtk.STOCK_NEW, gtk.RESPONSE_OK,
                                        gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL))
 
-        self.table = gtk.Table(2, 3)
-        self.table.set_row_spacings(5)
-        self.table.set_col_spacings(5)
+        self.set_modal(True)
 
         sizeLabel = gtk.Label('Size')
         sizeLabel.show()
-        self.widthSpin = gtk.SpinButton(gtk.Adjustment(3, 2, 6, 1, 1))
-        self.heightSpin = gtk.SpinButton(gtk.Adjustment(3, 2, 6, 1, 1))
-
-        self.table.attach(sizeLabel, 0, 1, 0, 1)
-        self.table.attach(self.widthSpin, 1, 2, 0, 1)
-        self.table.attach(self.heightSpin, 2, 3, 0, 1)
+        self.widthSpin = gtk.SpinButton(gtk.Adjustment(3, 1, 6, 1, 1))
+        self.heightSpin = gtk.SpinButton(gtk.Adjustment(3, 1, 6, 1, 1))
         self.widthSpin.show()
         self.heightSpin.show()
 
-        self.table.show()
+        sizeBox = gtk.HBox(spacing = 5)
+        sizeBox.show()
+        sizeBox.set_border_width(5)
+        sizeBox.add(sizeLabel)
+        sizeBox.add(self.widthSpin)
+        sizeBox.add(self.heightSpin)
 
-        self.vbox.add(self.table)
+        self.radioEmpty = gtk.RadioButton(None, 'Empty puzzle')
+        self.radioEmpty.show()
+        self.radioRandom = gtk.RadioButton(self.radioEmpty, 'Random puzzle')
+        self.radioRandom.show()
+
+        self.radioRandom.connect('toggled', self.toggleRandom)
+
+        self.symmetricalCheck = gtk.CheckButton('Symmetrical')
+        self.symmetricalCheck.set_active(True)
+
+        branchLabel = gtk.Label('Maximum branches')
+        branchLabel.show()
+        self.branchSpin = gtk.SpinButton(gtk.Adjustment(0, 0, 5, 1, 1))
+        self.branchSpin.show()
+
+        self.branchBox = gtk.HBox(spacing = 5)
+        self.branchBox.add(branchLabel)
+        self.branchBox.add(self.branchSpin)
+
+        frame = gtk.Frame()
+        frame.show()
+        frame.set_border_width(5)
+        frameVBox = gtk.VBox(spacing = 10)
+        frameVBox.show()
+        frameVBox.add(self.radioEmpty)
+        frameVBox.add(self.radioRandom)
+        frameVBox.add(self.symmetricalCheck)
+        frameVBox.add(self.branchBox)
+        frameVBox.set_border_width(5)
+        frame.add(frameVBox)
+        
+        self.vbox.add(sizeBox)
+        self.vbox.add(frame)
         self.vbox.show()
+        self.connect('response', self.response)
         self.show()
+
+    def toggleRandom(self, button):
+        if button.get_active():
+            self.symmetricalCheck.show()
+            self.branchBox.show()
+        else:
+            self.symmetricalCheck.hide()
+            self.branchBox.hide()
+        self.resize(1, 1)
+
+    def response(self, widget, data):
+        if data == gtk.RESPONSE_OK:
+            size = (int(self.widthSpin.get_value()), int(self.heightSpin.get_value()))
+            if self.radioRandom.get_active():
+                maxBranch = int(self.branchSpin.get_value())
+                symmetrical = self.symmetricalCheck.get_active()
+                
+                self.destroy()
+                
+                progress = ProgressDialog('Random puzzle')
+                progress.setLabel('Generating puzzle...')
+                progress.show()
+                progress.update()
+
+                board = randomPuzzle(size, maxBranch, symmetrical,
+                                     progress.pulse, progress.setFraction, progress.cancelled)
+
+                cancelled = progress.isCancelled
+                progress.destroy()
+
+                if cancelled:
+                    return
+            else:
+                self.destroy()
+                board = SudokuBoard(size, (size[1], size[0]))
+
+            gui = SudokuGUI(board)
+
+        else:
+            self.destroy()
         
         
 
@@ -462,7 +534,7 @@ openWindows = []
 
 
 def newDialog(widget = None):
-    dialog = RandomPuzzleDialog()
+    dialog = NewPuzzleDialog()
 
 
 def openDialog(widget = None):
