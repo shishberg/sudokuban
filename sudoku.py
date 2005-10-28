@@ -281,73 +281,45 @@ class SudokuCell:
         possible = self.board.values[:]
 
         for set in self.sets:
-            excluded = set.excludedValues[self]
-            possible = [value for value in possible if excluded[value] <= 0]
+            possible = [value for value in possible if set.isAvailable(value)]
 
         return possible
 
-    def setValue(self, value):
+    def couldBe(self, value):
         if self.value:
-            for set in self.sets:
-                set.unset(self, self.value)
-                
-        self.value = value
-
-        if self.value:
-            for set in self.sets:
-                set.set(self, value)
-
-    def exclude(self, value, increment = 1):
-        for set in self.sets:
-            set.exclude(self, value, increment)
+            return self.value == value
         
+        for set in self.sets:
+            if not set.isAvailable(value):
+                return False
+
+        return True
+
+    def setValue(self, value):
+        self.value = value
 
 class ExclusionSet:
     def __init__(self, board):
         self.board = board
         self.cells = []
-        
-        self.excludedValues = {}
-        
-        self.excludedCells = {}
-        for value in self.board.values:
-            self.excludedCells[value] = {}
+
+    def isAvailable(self, value):
+        for cell in self.cells:
+            if cell.value == value:
+                return False
+
+        return True
 
     def add(self, cell):
         self.cells.append(cell)
         cell.sets.append(self)
-        
-        excludedValueMap = {}
-        self.excludedValues[cell] = excludedValueMap
-        for value in self.board.values:
-            excludedValueMap[value] = 0
-            self.excludedCells[value][cell] = 0
 
-    def exclude(self, cell, value, increment = 1):
-        self.excludedValues[cell][value] += increment
-        self.excludedCells[value][cell] += increment
-
-    def include(self, cell, value):
-        self.exclude(cell, value, -1)
-        
-    def set(self, cell, value, increment = 1):
-        for c in self.cells:
-            if not c is cell:
-                c.exclude(value, increment)
-
-        for v in self.board.values:
-            if v != value:
-                cell.exclude(v, increment)
-
-    def unset(self, cell, value):
-        self.set(cell, value, -1)
-    
     def determinedValues(self):
         determined = []
         for value in self.board.values:
             possibleCell = None
             for cell in self.cells:
-                if self.excludedCells[value][cell] <= 0:
+                if cell.couldBe(value):
                     if not possibleCell:
                         possibleCell = cell
                     else:
