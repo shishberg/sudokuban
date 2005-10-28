@@ -103,14 +103,24 @@ class SudokuBoard:
 
     def difficulty(self):
 
-        for set in self.sets:
-            for (value, cell) in set.determinedValues():
-                if not cell.value:
-                    print 1, cell, value
-                    cell.setValue(value)
-                    diff = self.difficulty()
-                    cell.setValue(None)
-                    return diff + 1
+        sweep = self.logicalMoves(True, False)
+        exclude = self.logicalMoves(False, True)
+        diff = 50 - (2 * len(sweep)) - len(exclude)
+
+        cell = None
+        value = None
+        if sweep:
+            cell = sweep.keys()[0]
+            value = sweep[cell]
+        elif exclude:
+            cell = exclude.keys()[0]
+            value = exclude[cell]
+
+        if cell:
+            cell.setValue(value)
+            diff += self.difficulty()
+            cell.setValue(None)
+            return diff
 
         nextCell = None
         nextPossible = None
@@ -120,8 +130,7 @@ class SudokuBoard:
                 if not cell.value:
                     possible = cell.possibleValues()
                     if not possible:
-                        print 5, 'dead end'
-                        return 5 # Dead end
+                        return 10 # Dead end
                     if (not nextCell) or (len(possible) < len(nextPossible)):
                         nextCell = cell
                         nextPossible = possible
@@ -130,35 +139,32 @@ class SudokuBoard:
             # Solved
             return 0
 
-        diff = 10 * (len(nextPossible) - 1)
-        if diff:
-            print diff, 'branch'
-
         for value in nextPossible:
-            print 3, nextCell, value
             nextCell.setValue(value)
-            diff += self.difficulty() + 3
+            diff += self.difficulty()
             nextCell.setValue(None)
 
         return diff
 
 
-    def logicalMoves(self):
+    def logicalMoves(self, sweep = True, exclude = True):
         moves = {}
 
-        for row in self.cells:
-            for cell in row:
-                if not cell.value:
-                    possible = cell.possibleValues()
-                    if len(possible) == 1:
-                        moves[cell] = possible[0]
+        if exclude:
+            for row in self.cells:
+                for cell in row:
+                    if not cell.value:
+                        possible = cell.possibleValues()
+                        if len(possible) == 1:
+                            moves[cell] = possible[0]
 
-        for set in self.sets:
-            for (value, cell) in set.determinedValues():
-                if not cell.value:
-                    moves[cell] = value
+        if sweep:
+            for set in self.sets:
+                for (value, cell) in set.determinedValues():
+                    if not cell.value:
+                        moves[cell] = value
 
-        return moves    
+        return moves
 
     def solve(self, countOnly = False, maxCount = None):
         if (maxCount != None) and (maxCount <= 0):
@@ -337,3 +343,8 @@ def sample():
 
     return sample
 
+s1 = readSudoku('easy.txt')
+s2 = readSudoku('moderate.txt')
+s3 = readSudoku('medium.txt')
+s4 = readSudoku('challenging.txt')
+s5 = readSudoku('tough.txt')
