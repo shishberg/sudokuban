@@ -9,6 +9,14 @@ CELL_UNSET  = 1
 
 sizeLine = re.compile('^\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*$')
 
+DIFFICULTY_STR = (
+    (5.0,  'Outrageous'),
+    (15.0, 'Tough'),
+    (25.0, 'Challenging'),
+    (35.0, 'Moderate'),
+    (None, 'Easy')
+    )
+
 def readSudoku(filename):
     infile = file(filename)
     numbers = []
@@ -60,7 +68,6 @@ def randomCompleted(size = (3, 3)):
     board = SudokuBoard((size[0], size[1]), (size[1], size[0]))
     return board.solve(maxCount = 1, shuffle = True)[0]
 
-
 def randomPuzzleSystematic(size = (3, 3), maxBranch = 0,
                            symmetrical = True):
 
@@ -106,69 +113,6 @@ def randomPuzzleSystematic(size = (3, 3), maxBranch = 0,
             return board
             
 
-def randomPuzzle(size = (3, 3), maxBranch = 0, maxCount = 0, step = 20,
-                 minDiff = 20.0, maxDiff = 40.0, symmetrical = True,
-                 reinsert = 0.1, bailout = 50, output = True):
-
-    completed = randomCompleted(size)
-
-    board = completed.copy()
-    stableCount = 0
-    best = None
-    while board.filled > maxCount:
-        revert = []
-        curStep = random.randint(1, step)
-        
-        while len(revert) < curStep and board.filled > 0:
-            x = random.randint(0, board.size[0] - 1)
-            y = random.randint(0, board.size[1] - 1)
-            cell = board[x, y]
-            if not cell.value:
-                continue
-            revert.append((cell, cell.value))
-            cell.setValue(None)
-            if symmetrical:
-                cell2 = board[board.size[0] - x - 1, board.size[1] - y - 1]
-                # Ignore centre
-                if cell2 != cell:
-                    revert.append((cell2, cell2.value))
-                    cell2.setValue(None)
-
-        if board.difficulty(maxBranch) == None or board.solve(True, 2) != 1:
-            for (cell, value) in revert:
-                cell.setValue(value)
-                
-        if best == None or board.filled < best:
-            best = board.filled
-            if output:
-                print best
-            stableCount = 0
-        elif bailout:
-            stableCount += 1
-            if stableCount >= bailout:
-                break
-
-        # Reinsert some random values to avoid getting stuck
-        while random.random() < reinsert:
-            x = random.randint(0, board.size[0] - 1)
-            y = random.randint(0, board.size[1] - 1)
-            cell = board[x, y]
-            if not cell.value:
-                board[x, y] = completed[x, y].value
-                if symmetrical:
-                    x = board.size[0] - x - 1
-                    y = board.size[1] - y - 1
-                    board[x, y] = completed[x, y].value
-
-
-    for row in board.cells:
-        for cell in row:
-            if cell.value:
-                cell.state = CELL_PRESET
-    
-    return board
-
-
 class SudokuBoard:
     def __init__(self, regionSize = (3, 3), regionCount = (3, 3)):
         self.regionSize = regionSize
@@ -211,14 +155,15 @@ class SudokuBoard:
                     for x in range(xStart, xStart + regionSize[0]):
                         set.add(self.cells[y][x])
 
-    def copy(self):
+    def copy(self, presetOnly = False):
         newBoard = SudokuBoard(self.regionSize, self.regionCount)
         for y in range(self.size[1]):
             for x in range(self.size[0]):
-                newCell = newBoard[x, y]
                 oldCell = self[x, y]
-                newCell.setValue(oldCell.value)
-                newCell.state = oldCell.state
+                if (not presetOnly) or (oldCell.state == CELL_PRESET):
+                    newCell = newBoard[x, y]
+                    newCell.setValue(oldCell.value)
+                    newCell.state = oldCell.state
 
         return newBoard
 
@@ -280,8 +225,17 @@ class SudokuBoard:
     def __setitem__(self, (x, y), value):
         self.cells[y][x].setValue(value)
 
-    def difficulty(self, maxBranch = 3):
-        (total, count) = self.calcDifficulty(maxBranch)
+    def difficultyString(self, maxBranch = 0, progress = None, cancel = None):
+        diff = self.difficulty(maxBranch, progress, cancel)
+
+        for (minDiff, string) in DIFFICULTY_STR:
+            if (diff == None) or (minDiff == None) or (diff < minDiff):
+                return string
+
+        return DIFFICULTY_STR[-1][1]
+
+    def difficulty(self, maxBranch = 0, progress = None, cancel = None):
+        (total, count) = self.calcDifficulty(maxBranch, progress, cancel)
         if total < 0:
             return None
         elif count == 0:
@@ -289,7 +243,13 @@ class SudokuBoard:
         else:
             return float(total) / count
 
-    def calcDifficulty(self, maxBranch):
+    def calcDifficulty(self, maxBranch, progress, cancel):
+        if progress:
+            progress()
+        if cancel:
+            if cancel():
+                return (-1, 0)
+        
         if self.isSolved():
             return (0, 0)
         
@@ -307,7 +267,7 @@ class SudokuBoard:
             cell.setValue(value)
 
         if moves:
-            (total, count) = self.calcDifficulty(maxBranch)
+            (total, count) = self.calcDifficulty(maxBranch, progress, cancel)
 
         for (cell, value) in moves:
             cell.setValue(None)
@@ -350,7 +310,7 @@ class SudokuBoard:
 
         for value in nextPossible:
             nextCell.setValue(value)
-            (nextTotal, nextCount) = self.calcDifficulty(maxBranch)
+            (nextTotal, nextCount) = self.calcDifficulty(maxBranch, progress, cancel)
             if (nextTotal != -1):
                 total += nextTotal
             count += nextCount

@@ -276,8 +276,28 @@ class SudokuGUI:
         dialog.show()
 
     def difficulty(self, widget = None):
-        # FIXME - progress bar
-        pass
+        basePuzzle = self.board.copy(True)
+        
+        progress = ProgressDialog('Difficulty')
+        progress.setLabel('Estimating difficulty...')
+        progress.show()
+        progress.update()
+
+        difficulty = basePuzzle.difficultyString(3, progress = progress.pulse,
+                                                 cancel = progress.cancelled)
+
+        cancelled = progress.isCancelled
+        progress.destroy()
+
+        if cancelled:
+            return
+
+        dialog = gtk.MessageDialog(self.window, gtk.DIALOG_MODAL,
+                                   gtk.MESSAGE_INFO, gtk.BUTTONS_OK)
+        dialog.set_markup('Puzzle difficulty: ' + difficulty)        
+
+        dialog.connect('response', destroyDialog)
+        dialog.show()
 
     def solve(self, action):
         progress = ProgressDialog('Solve Puzzle')
