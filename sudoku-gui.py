@@ -6,7 +6,12 @@ from sudoku import *
 class BoardEntry(gtk.Entry):
     backgroundColour = gtk.gdk.Color(0xffff, 0xffff, 0xffff)
     normalShade = 0xffff
-    highlightShade = 0xbfff
+    minHighlightShade = 0x7fff
+    highlightShades = [
+        (0xbfff, 0xdfff, 0xffff),
+        (0xdfff, 0xffff, 0xbfff),
+        (0xffff, 0xbfff, 0xbfff)
+        ]
 
     def __init__(self, max, cell, gui):
         gtk.Entry.__init__(self, max)
@@ -30,7 +35,10 @@ class BoardEntry(gtk.Entry):
 
             for n in range(3):
                 if not self.cell.sets[n].isAvailable(self.gui.selectedValue):
-                    channels[n] = BoardEntry.highlightShade
+                    shade = BoardEntry.highlightShades[n]
+                    for i in range(3):
+                        channels[i] = max(channels[i] - (0xffff - shade[i]),
+                                          BoardEntry.minHighlightShade)
             
             self.modify_base(gtk.STATE_NORMAL, gtk.gdk.Color(channels[0], channels[1], channels[2]))
         else:
