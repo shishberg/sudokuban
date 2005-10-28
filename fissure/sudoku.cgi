@@ -140,11 +140,14 @@ def showForm(form = None):
 def solve(form):
     sudoku = Sudoku()
 
+    link = 'sudoku.cgi?solve=Solve'
+
     for col in range(0, 9):
         for row in range(0, 9):
             key = 'num%d%d' % (col, row)
             if form.has_key(key):
                 sudoku[col, row] = int(form[key].value)
+                link = link + '&%s=%d' % (key, sudoku[col, row])
 
     solutions = sudoku.solve()
 
@@ -155,7 +158,7 @@ def solve(form):
         print '<p align=center>Sorry, no solutions.</p>'
         showForm(form)
 
-    print '<p align=center><a href=sudoku.cgi>Start again</a></p>'
+    print '<p align=center><a href="%s">Link here</a> | <a href=sudoku.cgi>Start again</a></p>' % link
 
 def htmlGrid(sudoku, original):
     print '<table align=center border=0 cellspacing=4 cellpadding=0 bgcolor=#7f7f7f>'
