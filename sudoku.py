@@ -101,48 +101,6 @@ def randomPuzzle(maxBranch = 3, minCount = 20, maxCount = 30,
     return board
 
 
-def randomPuzzleSlow(board = None, maxBranch = 0, minCount = 20, maxCount = 30,
-                     minDiff = 20.0, maxDiff = 40.0):
-
-    if not board:
-        board = SudokuBoard()
-
-    if minCount <= board.filled and board.filled <= maxCount:
-        diff = board.difficulty(maxBranch)
-        if minDiff <= diff and diff <= maxDiff:
-            solutions = board.solve(True, 2)
-            if solutions == 1:
-                return board.copy()
-    
-    if board.filled >= maxCount:
-        return None
-
-    if not board.solve(True, 1):
-        return None
-
-    while True:
-        x = random.randint(0, board.size[0] - 1)
-        y = random.randint(0, board.size[1] - 1)
-        cell = board[x, y]
-        if not cell.value:
-            break
-
-    possible = cell.possibleValues()
-    if not possible:
-        return None
-    
-    random.shuffle(possible)
-    for value in possible:
-        cell.setValue(value)
-        puzzle = randomPuzzleSlow(board, maxBranch, minCount, maxCount,
-                                  minDiff, maxDiff)
-        cell.setValue(None)
-        if puzzle:
-            puzzle
-
-    return None
-
-
 class SudokuBoard:
     def __init__(self, regionSize = (3, 3), regionCount = (3, 3)):
         self.regionSize = regionSize
