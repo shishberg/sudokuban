@@ -14,7 +14,7 @@
         </menu>
         <menu action="Hints">
              <menuitem action="Solve"/>
-             <menuitem action="Sweep"/>
+             <menuitem action="Scan"/>
         </menu>
     </menubar>
 <!--

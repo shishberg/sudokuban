@@ -54,7 +54,7 @@ class BoardEntry(gtk.EventBox):
         else:
             self.label.set_text(' ')
 
-        if self.gui.sweepHighlight and self.gui.selectedValue:
+        if self.gui.scanHighlight and self.gui.selectedValue:
             shadeKey = (
                 self.cell.sets[0].isAvailable(self.gui.selectedValue),
                 self.cell.sets[1].isAvailable(self.gui.selectedValue),
@@ -86,7 +86,7 @@ class SudokuGUI:
     def __init__(self, board = SudokuBoard(), filename = None):
         openWindows.append(self)
 
-        self.sweepHighlight = False
+        self.scanHighlight = False
         self.selection = None
         self.selectedValue = 0
 
@@ -163,7 +163,7 @@ class SudokuGUI:
         self.selection.update()
         if self.selection.cell.value and self.selection.cell.value != self.selectedValue:
             self.selectedValue = self.selection.cell.value
-            if self.sweepHighlight:
+            if self.scanHighlight:
                 self.updateAll()
 
     def createActions(self):
@@ -172,7 +172,7 @@ class SudokuGUI:
 
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
         self.actionGroup.add_actions([('File', None, '_File'),
-                                      ('New', gtk.STOCK_NEW, '_New', '<Control>N', None, newDialog),
+                                      ('New', gtk.STOCK_NEW, '_New', '<Control>N', None, newPuzzleDialog),
                                       ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', None, openDialog),
                                       ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', None, self.saveFile),
                                       ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', None, self.saveAsDialog),
@@ -184,7 +184,7 @@ class SudokuGUI:
                                       ('Hints', None, '_Hints'),
                                       ('Solve', None, '_Solve', None, None, self.solve)
                                       ])
-        self.actionGroup.add_toggle_actions([('Sweep', None, '_Sweep Highlighting', None, None, self.toggleSweepHighlight)
+        self.actionGroup.add_toggle_actions([('Scan', None, '_Scan Highlighting', None, None, self.toggleScanHighlight)
                                              ])
 
         uimanager.insert_action_group(self.actionGroup, 0)
@@ -193,8 +193,8 @@ class SudokuGUI:
         self.vbox.pack_start(uimanager.get_widget('/MenuBar'),
                              False, True, 0)
 
-    def toggleSweepHighlight(self, action):
-        self.sweepHighlight = action.get_active()
+    def toggleScanHighlight(self, action):
+        self.scanHighlight = action.get_active()
         if self.selection:
             self.selectedValue = self.selection.cell.value
         else:
@@ -236,7 +236,7 @@ class SudokuGUI:
         else:
             entry.cell.setValue(None)
 
-        if self.sweepHighlight:
+        if self.scanHighlight:
             self.updateAll()
         else:
             entry.update()
@@ -426,6 +426,7 @@ class ProgressDialog(gtk.Dialog):
             gtk.main_iteration()
 
 
+
 class NewPuzzleDialog(gtk.Dialog):
     def __init__(self):
         gtk.Dialog.__init__(self, 'New puzzle',
@@ -436,6 +437,8 @@ class NewPuzzleDialog(gtk.Dialog):
 
         sizeLabel = gtk.Label('Size')
         sizeLabel.show()
+        xLabel = gtk.Label('x')
+        xLabel.show()
         self.widthSpin = gtk.SpinButton(gtk.Adjustment(3, 1, 6, 1, 1))
         self.heightSpin = gtk.SpinButton(gtk.Adjustment(3, 1, 6, 1, 1))
         self.widthSpin.show()
@@ -446,6 +449,7 @@ class NewPuzzleDialog(gtk.Dialog):
         sizeBox.set_border_width(5)
         sizeBox.add(sizeLabel)
         sizeBox.add(self.widthSpin)
+        sizeBox.add(xLabel)
         sizeBox.add(self.heightSpin)
 
         self.radioEmpty = gtk.RadioButton(None, 'Empty puzzle')
@@ -457,6 +461,8 @@ class NewPuzzleDialog(gtk.Dialog):
 
         self.symmetricalCheck = gtk.CheckButton('Symmetrical')
         self.symmetricalCheck.set_active(True)
+        self.scanCheck = gtk.CheckButton('Scanning only')
+        self.scanCheck.set_active(False)
 
         branchLabel = gtk.Label('Maximum branches')
         branchLabel.show()
@@ -475,6 +481,7 @@ class NewPuzzleDialog(gtk.Dialog):
         frameVBox.add(self.radioEmpty)
         frameVBox.add(self.radioRandom)
         frameVBox.add(self.symmetricalCheck)
+        frameVBox.add(self.scanCheck)
         frameVBox.add(self.branchBox)
         frameVBox.set_border_width(5)
         frame.add(frameVBox)
@@ -483,14 +490,15 @@ class NewPuzzleDialog(gtk.Dialog):
         self.vbox.add(frame)
         self.vbox.show()
         self.connect('response', self.response)
-        self.show()
 
     def toggleRandom(self, button):
         if button.get_active():
             self.symmetricalCheck.show()
+            self.scanCheck.show()
             self.branchBox.show()
         else:
             self.symmetricalCheck.hide()
+            self.scanCheck.hide()
             self.branchBox.hide()
         self.resize(1, 1)
 
@@ -500,30 +508,31 @@ class NewPuzzleDialog(gtk.Dialog):
             if self.radioRandom.get_active():
                 maxBranch = int(self.branchSpin.get_value())
                 symmetrical = self.symmetricalCheck.get_active()
+                scanOnly = self.scanCheck.get_active()
                 
-                self.destroy()
+                self.hide()
                 
                 progress = ProgressDialog('Random puzzle')
                 progress.setLabel('Generating puzzle...')
                 progress.show()
                 progress.update()
 
-                board = randomPuzzle(size, maxBranch, symmetrical,
+                board = randomPuzzle(size, maxBranch, scanOnly, symmetrical,
                                      progress.pulse, progress.setFraction, progress.cancelled)
 
                 cancelled = progress.isCancelled
-                progress.destroy()
+                progress.hide()
 
                 if cancelled:
                     return
             else:
-                self.destroy()
+                self.hide()
                 board = SudokuBoard(size, (size[1], size[0]))
 
             gui = SudokuGUI(board)
 
         else:
-            self.destroy()
+            self.hide()
         
         
 
@@ -531,11 +540,7 @@ class NewPuzzleDialog(gtk.Dialog):
 
 
 openWindows = []
-
-
-def newDialog(widget = None):
-    dialog = NewPuzzleDialog()
-
+newDialog = None
 
 def openDialog(widget = None):
     filedialog = gtk.FileSelection('Open')
@@ -556,10 +561,15 @@ def loadFromDialog(filedialog):
 def destroyDialog(widget, data = None):
     widget.destroy()
 
-    #if not openWindows:
-    #    gtk.main_quit()
-
     
+def newPuzzleDialog(widget = None):
+    global newDialog
+    if not newDialog:
+        newDialog = NewPuzzleDialog()
+    newDialog.show()
+    return newDialog
+
+
 if __name__ == '__main__':
     args = sys.argv[1:]
     if args:

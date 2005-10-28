@@ -70,7 +70,8 @@ def randomCompleted(size = (3, 3), progress = None, cancel = None):
                            progress = progress, cancel = cancel)
     return solution[0]
 
-def randomPuzzle(size = (3, 3), maxBranch = 0, symmetrical = True,
+def randomPuzzle(size = (3, 3), maxBranch = 0,
+                 symmetrical = True, hatchOnly = True,
                  progress = None, fraction = None, cancel = None):
 
     board = randomCompleted(size, progress=progress, cancel=cancel)
@@ -111,7 +112,9 @@ def randomPuzzle(size = (3, 3), maxBranch = 0, symmetrical = True,
             else:
                 cell2 = None
 
-        if board.difficulty(maxBranch) == None or board.solve(True, 2) != 1:
+        if board.difficulty(maxBranch, hatchOnly) == None or \
+               board.solve(True, 2) != 1:
+            
             cell.setValue(value)
             if symmetrical and cell2:
                 cell2.setValue(value2)
@@ -157,11 +160,13 @@ class SudokuBoard:
             for cell in row:
                 set.add(cell)
 
+        self.regionSets = []
         # Regions
         for yStart in range(0, self.size[1], regionSize[1]):
             for xStart in range(0, self.size[0], regionSize[0]):
                 set = ExclusionSet(self)
                 self.sets.append(set)
+                self.regionSets.append(set)
                 for y in range(yStart, yStart + regionSize[1]):
                     for x in range(xStart, xStart + regionSize[0]):
                         set.add(self.cells[y][x])
@@ -245,8 +250,10 @@ class SudokuBoard:
 
         return DIFFICULTY_STR[-1][1]
 
-    def difficulty(self, maxBranch = 0, progress = None, cancel = None):
-        (total, count) = self.calcDifficulty(maxBranch, progress, cancel)
+    def difficulty(self, maxBranch = 0, hatchOnly = False,
+                   progress = None, cancel = None):
+        
+        (total, count) = self.calcDifficulty(maxBranch, hatchOnly, progress, cancel)
         if total < 0:
             return None
         elif count == 0:
@@ -254,7 +261,7 @@ class SudokuBoard:
         else:
             return float(total) / count
 
-    def calcDifficulty(self, maxBranch, progress, cancel):
+    def calcDifficulty(self, maxBranch, hatchOnly, progress, cancel):
         if progress:
             progress()
         if cancel:
@@ -266,19 +273,20 @@ class SudokuBoard:
         
         if maxBranch < 0:
             return (-1, 0)
-        
-        moves = self.logicalMoves(True, False).items()
+
+        # Cross-hatch moves
+        moves = self.logicalMoves(False, False, True).items()
         if moves:
-            diff = 4 * len(moves)
-        else:
-            moves = self.logicalMoves(False, True).items()
+            diff = 5 * len(moves)
+        elif not hatchOnly:
+            moves = self.logicalMoves(True, True, False).items()
             diff = len(moves)
 
         for (cell, value) in moves:
             cell.setValue(value)
 
         if moves:
-            (total, count) = self.calcDifficulty(maxBranch, progress, cancel)
+            (total, count) = self.calcDifficulty(maxBranch, hatchOnly, progress, cancel)
 
         for (cell, value) in moves:
             cell.setValue(None)
@@ -321,7 +329,7 @@ class SudokuBoard:
 
         for value in nextPossible:
             nextCell.setValue(value)
-            (nextTotal, nextCount) = self.calcDifficulty(maxBranch, progress, cancel)
+            (nextTotal, nextCount) = self.calcDifficulty(maxBranch, hatchOnly, progress, cancel)
             if (nextTotal != -1):
                 total += nextTotal
             count += nextCount
@@ -333,7 +341,7 @@ class SudokuBoard:
         return (total, count)
 
 
-    def logicalMoves(self, sweep = True, exclude = True, maxCount = 0):
+    def logicalMoves(self, allScan = True, exclude = True, hatch = False, maxCount = 0):
         moves = {}
 
         if exclude:
@@ -346,13 +354,21 @@ class SudokuBoard:
                             if maxCount and (len(moves) >= maxCount):
                                 return moves
 
-        if sweep:
+        if allScan:
             for set in self.sets:
                 for (value, cell) in set.determinedValues():
                     if not cell.value:
                         moves[cell] = value
                         if maxCount and (len(moves) >= maxCount):
                             return moves
+
+        if hatch:
+            for set in self.regionSets:
+                for (value, cell) in set.determinedValues():
+                    if not cell.value:
+                        moves[cell] = value
+                        if maxCount and (len(moves) >= maxCount):
+                            return moves            
 
         return moves
     
