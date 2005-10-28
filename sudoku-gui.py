@@ -198,6 +198,7 @@ class BoardEntry(gtk.EventBox):
         elif requisition.height < requisition.width:
             self.set_size_request(requisition.width, requisition.width)
 
+
 class SudokuGUI:
     def __init__(self, board = SudokuBoard(), filename = None):
         openWindows.append(self)
@@ -205,6 +206,7 @@ class SudokuGUI:
         self.scanHighlight = False
         self.selection = None
         self.selectedValue = 0
+        self.exclude = False
         self.digitKeys = ''
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -365,7 +367,8 @@ class SudokuGUI:
                                       ('Hints', None, '_Hints'),
                                       ('Solve', None, '_Solve', None, None, self.solve)
                                       ])
-        self.actionGroup.add_toggle_actions([('Scan', None, '_Highlight', None, None, self.toggleScanHighlight)
+        self.actionGroup.add_toggle_actions([('Scan', None, '_Highlight', None, None, self.toggleScanHighlight),
+                                             ('Exclude', None, '_Disable excluded', None, None, self.toggleExclude)
                                              ])
 
         uimanager.insert_action_group(self.actionGroup, 0)
@@ -384,6 +387,9 @@ class SudokuGUI:
             self.selectedValue = 0
         self.updateAll()
 
+    def toggleExclude(self, action):
+        self.exclude = action.get_active()
+
     def clickInCell(self, widget, event, cell):
         if event.button == 1:
             self.setSelection(widget)
@@ -391,7 +397,10 @@ class SudokuGUI:
             return self.numberMenu(widget, cell, event.button, event.time)
 
     def numberMenu(self, widget, cell, button = 0, eventTime = 0):
-        values = [0] + cell.possibleValues()
+        if self.exclude:
+            values = [0] + cell.possibleValues()
+        else:
+            values = range(self.board.values + 1)
 
         menu = gtk.Menu()
         for value in values:
