@@ -1,15 +1,18 @@
-import os, sys
+import os, sys, time
 import pygtk, gtk, pango
 
 from sudoku import *
 
-openWindows = []
-
 class BoardEntry(gtk.Entry):
-    def __init__(self, max, cell):
+    backgroundColour = gtk.gdk.Color(0xffff, 0xffff, 0xffff)
+    normalShade = 0xffff
+    highlightShade = 0xbfff
+
+    def __init__(self, max, cell, gui):
         gtk.Entry.__init__(self, max)
 
         self.cell = cell
+        self.gui = gui
         
         self.set_alignment(0.5)
         self.set_width_chars(2)
@@ -22,13 +25,28 @@ class BoardEntry(gtk.Entry):
         else:
             self.set_text('')
 
+        if self.gui.sweepHighlight and self.gui.selectedValue:
+            channels = [BoardEntry.normalShade] * 3
+
+            for n in range(3):
+                if not self.cell.sets[n].isAvailable(self.gui.selectedValue):
+                    channels[n] = BoardEntry.highlightShade
+            
+            self.modify_base(gtk.STATE_NORMAL, gtk.gdk.Color(channels[0], channels[1], channels[2]))
+        else:
+            self.modify_base(gtk.STATE_NORMAL, BoardEntry.backgroundColour)
+
 class SudokuGUI:
     presetFont = pango.FontDescription('sans bold 18')
     unsetFont = pango.FontDescription('sans normal 18')
     unsetColour = gtk.gdk.Color(0x0000, 0x3fff, 0x7fff)
     
-    def __init__(self, board, filename = None):
+    def __init__(self, board = SudokuBoard(), filename = None):
         openWindows.append(self)
+
+        self.sweepHighlight = False
+        self.selection = None
+        self.selectedValue = 0
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.connect('destroy', self.destroy)
@@ -69,7 +87,7 @@ class SudokuGUI:
                         cellY = yStart + y
 
                         cell = self.board[cellX, cellY]
-                        entry = BoardEntry(2, cell)
+                        entry = BoardEntry(2, cell, self)
                         self.entries.append(entry)
                         
                         if cell.value:
@@ -80,7 +98,9 @@ class SudokuGUI:
 
                         entry.update()
 
-                        entry.connect("button_press_event", self.numberMenu, cell);
+                        entry.connect('button_press_event', self.clickInCell, cell)
+                        entry.connect('popup_menu', self.numberMenu, cell)
+                        entry.connect('focus', self.setSelection)
 
                         regionTable.attach(entry, x, x + 1, y, y + 1)
                         entry.show()
@@ -102,6 +122,12 @@ class SudokuGUI:
 
         self.window.set_title(title)
 
+    def setSelection(self, widget, data = None):
+        self.selection = widget
+        if self.selection.cell.value:
+            self.selectedValue = self.selection.cell.value
+            if self.sweepHighlight:
+                self.updateAll()
 
     def createActions(self):
         uimanager = gtk.UIManager()
@@ -112,33 +138,48 @@ class SudokuGUI:
                                       ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', None, openDialog),
                                       ('Quit', gtk.STOCK_QUIT, '_Quit', None, None, self.destroy),
                                       ('Hints', None, '_Hints'),
-                                      ('Solve', None, '_Solve', None, None, self.solve)])
+                                      ('Solve', None, '_Solve', None, None, self.solve)
+                                      ])
+        self.actionGroup.add_toggle_actions([('Sweep', None, '_Sweep Highlighting', None, None, self.toggleSweepHighlight)
+                                             ])
 
         uimanager.insert_action_group(self.actionGroup, 0)
 
         uimanager.add_ui_from_file('sudoku-ui.xml')
         self.vbox.add(uimanager.get_widget('/MenuBar'))
 
+    def toggleSweepHighlight(self, action):
+        self.sweepHighlight = action.get_active()
+        self.updateAll()
 
-    def numberMenu(self, widget, event, cell):
-        if event.button == 3:
-            values = [0] + cell.possibleValues()
-            
-            menu = gtk.Menu()
-            for value in values:
-                if value:
-                    text = str(value)
-                else:
-                    text = ' '
+    def clickInCell(self, widget, event, cell):
+        if event.button == 1:
+            self.setSelection(widget)
+        elif event.button == 3:
+            return self.numberMenu(widget, cell, event.button, event.time)
 
-                item = gtk.MenuItem(text)
-                item.connect_object('activate', self.setEntry, widget, value)
-                item.show()
-                menu.append(item)
+    def numberMenu(self, widget, cell, button = 0, eventTime = 0):
+        values = [0] + cell.possibleValues()
 
-            menu.popup(None, None, None, event.button, event.time)
+        menu = gtk.Menu()
+        for value in values:
+            if value:
+                text = str(value)
+            else:
+                text = ' '
 
-            return True
+            item = gtk.MenuItem(text)
+            item.connect_object('activate', self.setEntry, widget, value)
+            item.show()
+            menu.append(item)
+
+        menu.popup(None, None, None, button, eventTime)
+
+        return True
+
+    def updateAll(self):
+        for entry in self.entries:
+            entry.update()
 
     def setEntry(self, entry, value):
         if value:
@@ -146,7 +187,10 @@ class SudokuGUI:
         else:
             entry.cell.setValue(None)
 
-        entry.update()
+        if self.sweepHighlight:
+            self.updateAll()
+        else:
+            entry.update()
 
     def solve(self, action):
         solutions = self.board.solve(maxCount = 1)
@@ -166,6 +210,13 @@ class SudokuGUI:
             self.window.destroy()
         else:
             gtk.main_quit()
+
+
+# Global stuff
+
+
+openWindows = []
+
 
 def openDialog(widget = None):
     filedialog = gtk.FileSelection('Open Sudoku puzzle')
@@ -187,6 +238,7 @@ def destroyFileDialog(widget):
 
     if not openWindows:
         gtk.main_quit()
+
     
 if __name__ == '__main__':
     args = sys.argv[1:]
@@ -194,6 +246,6 @@ if __name__ == '__main__':
         for filename in args:
             newGui = SudokuGUI(readSudoku(filename), filename)
     else:
-        newGui = SudokuGUI(SudokuBoard())
+        newGui = SudokuGUI()
 
     gtk.main()
