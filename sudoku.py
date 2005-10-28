@@ -1,6 +1,10 @@
+# Note: for compatibility with older versions of Python
+# (i.e. hosted at Fissure), 0 and 1 are used instead of
+# False and True.
+
 class Sudoku:
     def __init__(self, other = None):
-        self.valid = True
+        self.valid = 1 
         self.data = []
         if other:
             for x in range(0, 9):
@@ -25,7 +29,7 @@ class Sudoku:
     def __setitem__(self, (x, y), num):
         item = self.data[x][y]
         if not num in item:
-            self.valid = False
+            self.valid = 0
         else:
             self.data[x][y] = [num]
             for row in range(0, 9):
@@ -47,7 +51,7 @@ class Sudoku:
         if num in item:
             item.remove(num)
             if len(item) == 0:
-                self.valid = False
+                self.valid = 0
             elif len(item) == 1:
                 self[x, y] = item[0]
 

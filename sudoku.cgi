@@ -79,6 +79,7 @@ def htmlGrid(sudoku, original):
             print '</td>'
         print '</tr>'
     print '</table>'
+    print '<br>'
     
             
 
