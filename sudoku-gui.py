@@ -577,6 +577,9 @@ def quit(widget = None):
 
 if __name__ == '__main__':
     args = sys.argv[1:]
+
+    gtk.window_set_default_icon_from_file('images/icon.png')
+    
     if args:
         for filename in args:
             newGui = SudokuGUI(readSudoku(filename), filename)
