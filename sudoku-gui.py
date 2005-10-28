@@ -3,7 +3,7 @@ import pygtk, gtk, pango
 
 from sudoku import *
 
-class BoardEntry(gtk.Entry):
+class BoardEntry(gtk.EventBox):
     backgroundColour = gtk.gdk.Color(0xffff, 0xffff, 0xffff)
     normalShade = 0xffff
     minHighlightShade = 0x7fff
@@ -13,22 +13,22 @@ class BoardEntry(gtk.Entry):
         (0xefff, 0xafff, 0xafff) # Red
         ]
 
-    def __init__(self, max, cell, gui):
-        gtk.Entry.__init__(self, max)
+    def __init__(self, cell, gui):
+        gtk.EventBox.__init__(self)
 
         self.cell = cell
         self.gui = gui
-        
-        self.set_alignment(0.5)
-        self.set_width_chars(2)
-        self.set_has_frame(False)
-        self.set_editable(False)
+
+        self.label = gtk.Label()
+        self.label.set_alignment(0.5, 0.5)
+        self.label.show()
+        self.add(self.label)
 
     def update(self):
         if self.cell.value:
-            self.set_text(str(self.cell.value))
+            self.label.set_text(str(self.cell.value))
         else:
-            self.set_text('')
+            self.label.set_text(' ')
 
         if self.gui.sweepHighlight and self.gui.selectedValue:
             channels = [BoardEntry.normalShade] * 3
@@ -40,9 +40,9 @@ class BoardEntry(gtk.Entry):
                         channels[i] = max(channels[i] - (0xffff - shade[i]),
                                           BoardEntry.minHighlightShade)
             
-            self.modify_base(gtk.STATE_NORMAL, gtk.gdk.Color(channels[0], channels[1], channels[2]))
+            self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(channels[0], channels[1], channels[2]))
         else:
-            self.modify_base(gtk.STATE_NORMAL, BoardEntry.backgroundColour)
+            self.modify_bg(gtk.STATE_NORMAL, BoardEntry.backgroundColour)
 
 class SudokuGUI:
     presetFont = pango.FontDescription('sans bold 18')
@@ -95,14 +95,14 @@ class SudokuGUI:
                         cellY = yStart + y
 
                         cell = self.board[cellX, cellY]
-                        entry = BoardEntry(2, cell, self)
+                        entry = BoardEntry(cell, self)
                         self.entries.append(entry)
                         
                         if cell.value:
-                            entry.modify_font(SudokuGUI.presetFont)
+                            entry.label.modify_font(SudokuGUI.presetFont)
                         else:
-                            entry.modify_font(SudokuGUI.unsetFont)
-                            entry.modify_text(gtk.STATE_NORMAL, SudokuGUI.unsetColour)
+                            entry.label.modify_font(SudokuGUI.unsetFont)
+                            entry.label.modify_fg(gtk.STATE_NORMAL, SudokuGUI.unsetColour)
 
                         entry.update()
 
