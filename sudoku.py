@@ -59,7 +59,52 @@ def writeSudoku(board, filename):
 def randomCompleted(size = (3, 3)):
     board = SudokuBoard((size[0], size[1]), (size[1], size[0]))
     return board.solve(maxCount = 1, shuffle = True)[0]
-        
+
+
+def randomPuzzleSystematic(size = (3, 3), maxBranch = 0,
+                           symmetrical = True):
+
+    board = randomCompleted(size)
+    width = size[0] * size[1]
+    if symmetrical:
+        cells = range(width * width / 2 + 1)
+    else:
+        cells = range(width * width)
+
+    while True:
+        removed = 0
+        random.shuffle(cells)
+
+        for n in cells:
+            x = n % width
+            y = n / width
+
+            cell = board[x, y]
+            value = cell.value
+            if not value:
+                continue
+            cell.setValue(None)
+
+            if symmetrical:
+                x2 = width - x - 1
+                y2 = width - y - 1
+                if x2 != x or y2 != y:
+                    cell2 = board[x2, y2]
+                    value2 = cell2.value
+                    cell2.setValue(None)
+                else:
+                    cell2 = None
+
+            if board.difficulty(maxBranch) == None or board.solve(True, 2) != 1:
+                cell.setValue(value)
+                if symmetrical and cell2:
+                    cell2.setValue(value2)
+            else:
+                removed += 1
+
+        if not removed:
+            return board
+            
 
 def randomPuzzle(size = (3, 3), maxBranch = 0, maxCount = 0, step = 20,
                  minDiff = 20.0, maxDiff = 40.0, symmetrical = True,
@@ -327,7 +372,7 @@ class SudokuBoard:
                             return moves
 
         return moves
-
+    
     def solve(self, countOnly = False, maxCount = None, shuffle = False):
         if (maxCount != None) and (maxCount <= 0):
             if countOnly:
@@ -345,7 +390,7 @@ class SudokuBoard:
             for (cell, value) in moves.items():
                 revert.append(cell)
                 cell.setValue(value)
-        
+	
         nextCell = None
         nextPossible = None
 
