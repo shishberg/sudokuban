@@ -2,6 +2,114 @@
 
 import cgi, sys
 
+# Main solver code included here - see sudoku.py
+
+class Sudoku:
+    def __init__(self, other = None):
+        self.data = []
+        if other:
+            for n in range(0, 9):
+                self.data.append(other.data[n][:])
+        else:
+            for n in range(0, 9):
+                self.data.append([0] * 9)
+
+    def __getitem__(self, (x, y)):
+        return self.data[x][y]
+
+    def __setitem__(self, (x, y), num):
+        self.data[x][y] = num
+
+    def row(self, n):
+        list = []
+        for i in range(0, 9):
+            list.append(self[i, n])
+        return list
+
+    def col(self, n):
+        list = []
+        for i in range(0, 9):
+            list.append(self[n, i])
+        return list
+
+    def grid(self, (gridX, gridY)):
+        startX = gridX * 3
+        startY = gridY * 3
+        grid = []
+        for y in range(startY, startY + 3):
+            for x in range(startX, startX + 3):
+                grid.append(self[x, y])
+
+        return grid
+
+    def __repr__(self):
+        string = '\n'
+        for y in range(0, 9):
+            if y % 3 == 0:
+                string = string + '+---+---+---+\n'
+            for x in range(0, 9):
+                if x % 3 == 0:
+                    string = string + '|'
+                val = self[x, y]
+                if val:
+                    string = string + str(val)
+                else:
+                    string = string + ' '
+            string = string + '|\n'
+        string = string + '+---+---+---+\n'
+        return string
+
+    def solve(self):
+        mostConstrained = None
+        mostConsValid = None
+
+        for y in range(0, 9):
+            for x in range(0, 9):
+                val = self[x, y]
+                if not val:
+                    # Start with everything valid
+                    valid = range(1, 10)
+                    
+                    # Then cancel some out
+                    curRow  = self.row(y)
+                    curCol  = self.col(x)
+                    curGrid = self.grid((x/3, y/3))
+                    
+                    for n in curRow:
+                        if n in valid:
+                            valid.remove(n)
+                            
+                    for n in curCol:
+                        if n in valid:
+                            valid.remove(n)
+                            
+                    for n in curGrid:
+                        if n in valid:
+                            valid.remove(n)
+
+                    # If none left, configuration is invalid
+                    if not valid:
+                        return []
+
+                    # If most constrained so far, cache it
+                    if (not mostConstrained) or len(mostConsValid) > len(valid):
+                        mostConstrained = (x, y)
+                        mostConsValid = valid
+
+        if not mostConstrained:
+            # Solution found
+            return [self]
+        
+        # Follow branches
+        solutions = []
+        for n in mostConsValid:
+            branch = Sudoku(self)
+            branch[mostConstrained] = n
+            solutions = solutions + branch.solve()
+
+        return solutions
+
+
 def showForm(form = None):
     print '<form method=post>'
     
@@ -99,103 +207,3 @@ def main():
 if __name__ == '__main__':
     sys.exit(main())
 
-# Main solver code included here - see sudoku.py
-
-class Sudoku:
-    def __init__(self, other = None):
-        self.data = []
-        if other:
-            for n in range(0, 9):
-                self.data.append(other.data[n][:])
-        else:
-            for n in range(0, 9):
-                self.data.append([0] * 9)
-
-    def __getitem__(self, (x, y)):
-        return self.data[x][y]
-
-    def __setitem__(self, (x, y), num):
-        self.data[x][y] = num
-
-    def row(self, n):
-        return [self[i, n] for i in range(0, 9)]
-
-    def col(self, n):
-        return [self[n, i] for i in range(0, 9)]
-
-    def grid(self, (gridX, gridY)):
-        startX = gridX * 3
-        startY = gridY * 3
-        grid = []
-        for y in range(startY, startY + 3):
-            for x in range(startX, startX + 3):
-                grid.append(self[x, y])
-
-        return grid
-
-    def __repr__(self):
-        string = '\n'
-        for y in range(0, 9):
-            if y % 3 == 0:
-                string += '+---+---+---+\n'
-            for x in range(0, 9):
-                if x % 3 == 0:
-                    string += '|'
-                val = self[x, y]
-                if val:
-                    string += str(val)
-                else:
-                    string += ' '
-            string += '|\n'
-        string += '+---+---+---+\n'
-        return string
-
-    def solve(self):
-        mostConstrained = None
-        mostConsValid = None
-
-        for y in range(0, 9):
-            for x in range(0, 9):
-                val = self[x, y]
-                if not val:
-                    # Start with everything valid
-                    valid = range(1, 10)
-                    
-                    # Then cancel some out
-                    curRow  = self.row(y)
-                    curCol  = self.col(x)
-                    curGrid = self.grid((x/3, y/3))
-                    
-                    for n in curRow:
-                        if n in valid:
-                            valid.remove(n)
-                            
-                    for n in curCol:
-                        if n in valid:
-                            valid.remove(n)
-                            
-                    for n in curGrid:
-                        if n in valid:
-                            valid.remove(n)
-
-                    # If none left, configuration is invalid
-                    if not valid:
-                        return []
-
-                    # If most constrained so far, cache it
-                    if (not mostConstrained) or len(mostConsValid) > len(valid):
-                        mostConstrained = (x, y)
-                        mostConsValid = valid
-
-        if not mostConstrained:
-            # Solution found
-            return [self]
-        
-        # Follow branches
-        solutions = []
-        for n in mostConsValid:
-            branch = Sudoku(self)
-            branch[mostConstrained] = n
-            solutions += branch.solve()
-
-        return solutions
