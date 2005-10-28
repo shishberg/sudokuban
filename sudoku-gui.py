@@ -459,10 +459,10 @@ class SudokuGUI:
 
         # Custom icons
         self.iconFactory = gtk.IconFactory()
-        self.registerIcon('sudoku-solve', 'images/solve.png')
-        self.registerIcon('sudoku-highlight', 'images/highlight.png')
-        self.registerIcon('sudoku-exclude', 'images/exclude.png')
-        self.registerIcon('sudoku-presets', 'images/presets.png')
+        self.registerIcon('sudoku-solve', os.path.join(programDir, 'images/solve.png'))
+        self.registerIcon('sudoku-highlight', os.path.join(programDir, 'images/highlight.png'))
+        self.registerIcon('sudoku-exclude', os.path.join(programDir, 'images/exclude.png'))
+        self.registerIcon('sudoku-presets', os.path.join(programDir, 'images/presets.png'))
         self.iconFactory.add_default()
 
         self.actionGroup = gtk.ActionGroup('SudokuSensei')
@@ -502,7 +502,7 @@ class SudokuGUI:
 
         uimanager.insert_action_group(self.actionGroup, 0)
 
-        uimanager.add_ui_from_file('sudoku-ui.xml')
+        uimanager.add_ui_from_file(os.path.join(programDir, 'sudoku-ui.xml'))
 
         menubar = uimanager.get_widget('/MenuBar')
         toolbar = uimanager.get_widget('/Toolbar')
@@ -1149,7 +1149,7 @@ def aboutDialog(widget = None):
         dialog.set_version('1.0')
         dialog.set_copyright('Copyright (C) David McLeish 2005')
         dialog.set_website('http://rightside.fissure.org/sudoku/')
-        dialog.set_logo(gtk.gdk.pixbuf_new_from_file('images/icon.png'))
+        dialog.set_logo(gtk.gdk.pixbuf_new_from_file(os.path.join(programDir, 'images/icon.png')))
 
         # Read license text
         licenseText = '''This program is free software; you can redistribute it and/or modify
@@ -1171,7 +1171,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 '''
 
         try:
-            licenseFile = open('COPYING')
+            licenseFile = open(os.path.join(programDir, 'COPYING'))
             for line in licenseFile.readlines():
                 licenseText += line
             licenseFile.close()
@@ -1198,6 +1198,11 @@ def quit(widget = None):
 
 if __name__ == '__main__':
     try:
+        programDir = os.path.dirname(sys.argv[0])
+    except:
+        programDir = '.'
+    
+    try:
         settings = Settings(os.path.expanduser('~/.sudokusensei'))
     except:
         try:
@@ -1207,7 +1212,7 @@ if __name__ == '__main__':
     
     args = sys.argv[1:]
 
-    gtk.window_set_default_icon_from_file('images/icon.png')
+    gtk.window_set_default_icon_from_file(os.path.join(programDir, 'images/icon.png'))
     
     if args:
         for filename in args:
