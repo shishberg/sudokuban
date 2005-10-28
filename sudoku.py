@@ -265,6 +265,8 @@ class SudokuCell:
         self.coord = coord
         self.sets = []
 
+        self.clearCache()
+
     def __repr__(self):
         return str(self.coord)
 
@@ -278,37 +280,63 @@ class SudokuCell:
         return cmp(self.coord, other.coord)
 
     def possibleValues(self):
-        possible = self.board.values[:]
+        if self.cachedPossibleValues == None:
+            self.cachedPossibleValues = self.board.values[:]
 
-        for set in self.sets:
-            possible = [value for value in possible if set.isAvailable(value)]
+            for set in self.sets:
+                self.cachedPossibleValues = [value for value in self.cachedPossibleValues if set.isAvailable(value)]
 
-        return possible
+        return self.cachedPossibleValues
 
     def couldBe(self, value):
         if self.value:
             return self.value == value
-        
-        for set in self.sets:
-            if not set.isAvailable(value):
-                return False
 
-        return True
+        #if self.cachedPossibleValues != None:
+        #    return value in self.cachedPossibleValues
+        
+        #for set in self.sets:
+        #    if not set.isAvailable(value):
+        #        return False
+        
+        #return True
+
+        return value in self.possibleValues()
 
     def setValue(self, value):
+        for set in self.sets:
+            if value and not self.value:
+                set.cachedIsAvailable[value - 1] = False
+            else:
+                set.clearCache()
+            for cell in set.cells:
+                cell.clearCache()
+
         self.value = value
+        
+    def clearCache(self):
+        self.cachedPossibleValues = None
 
 class ExclusionSet:
     def __init__(self, board):
         self.board = board
         self.cells = []
 
+        self.cachedIsAvailable = [None] * len(self.board.values)
+        
     def isAvailable(self, value):
+        cached = self.cachedIsAvailable[value - 1]
+        if cached != None:
+            return cached
+
+        available = True
         for cell in self.cells:
             if cell.value == value:
-                return False
+                available = False
+                break
 
-        return True
+        self.cachedIsAvailable[value - 1] = available
+        return available
 
     def add(self, cell):
         self.cells.append(cell)
@@ -329,6 +357,10 @@ class ExclusionSet:
                 determined.append((value, possibleCell))
 
         return determined
+
+    def clearCache(self):
+        for i in range(len(self.cachedIsAvailable)):
+            self.cachedIsAvailable[i] = None
 
 
 def sample():
