@@ -1,11 +1,15 @@
+import random
+
 class Sudoku:
     def __init__(self, other = None):
         self.valid = 1
+        self.set = 0
         self.data = []
         self.availCol = []
         self.availRow = []
         self.availBox = []
         if other:
+            self.set = other.set
             for x in range(9):
                 dat = []
                 col = []
@@ -71,6 +75,7 @@ class Sudoku:
             self.valid = 0
         else:
             self.data[x][y] = num
+            self.set += 1
             self.availCol[x][num-1] = y
             self.availRow[y][num-1] = x
             gridNum = (y / 3) * 3 + (x / 3)
@@ -170,6 +175,9 @@ class Sudoku:
 
         return grid
 
+    def solved(self):
+        return self.set == 81
+
     def __repr__(self):
         string = '\n'
         for y in range(0, 9):
@@ -221,7 +229,7 @@ class Sudoku:
 
         return solutions
 
-    def possibleNext(self, evaluate = True):
+    def possibleNext(self, evaluate = True, count = 0):
         if not self.valid:
             return []
 
@@ -231,20 +239,30 @@ class Sudoku:
                 item = self.data[x][y]
                 if isinstance(item, list) and len(item) == 1:
                     next.append(((x, y), item[0]))
+                    if count and len(next) >= count:
+                        break
 
                 item = self.availCol[x][y]
                 if isinstance(item, list) and len(item) == 1:
                     next.append(((x, item[0]), y+1))
+                    if count and len(next) >= count:
+                        break
 
                 item = self.availRow[x][y]
                 if isinstance(item, list) and len(item) == 1:
                     next.append(((item[0], x), y+1))
+                    if count and len(next) >= count:
+                        break
 
                 item = self.availBox[x][y]
                 if isinstance(item, list) and len(item) == 1:
                     xPos = (x % 3) * 3 + (item[0] % 3)
                     yPos = (x / 3) * 3 + (item[0] / 3)
                     next.append(((xPos, yPos), y+1))
+                    if count and len(next) >= count:
+                        break
+            if count and len(next) >= count:
+                break
 
         if evaluate:
             nextBoards = []
@@ -269,7 +287,7 @@ class Sudoku:
                     curHash = curHash ^ (item << left)
         return curHash
 
-def paths(start):
+def paths(start, count=0):
     current = [start]
     seen = []
     seenHash = {}
@@ -278,9 +296,9 @@ def paths(start):
         if not seenHash.has_key(s):
             seen.append(s)
             seenHash[s] = True
-            next = s.possibleNext()
-            if (len(seen) % 100 == 0):
-                print len(seen), len(current), len(next)
+            next = s.possibleNext(count = count)
+            #if (len(seen) % 100 == 0):
+            #    print len(seen), len(current), len(next)
 	
             #current += next
 	    for n in next:
@@ -289,6 +307,97 @@ def paths(start):
 		    current.append(n)
     return seen
 
+def maxPaths(start):
+    s = start
+    maxCount = 0
+    while True:
+        next = s.possibleNext(False)
+        if not next:
+            break
+        nextUnique = []
+        for n in next:
+            if not n in nextUnique:
+                nextUnique.append(n)
+        if len(nextUnique) > maxCount:
+            maxCount = len(nextUnique)
+        s = s.possibleNext(count = 1)[0]
+    return maxCount
+
+def randomPuzzle(threshold = 1000):
+    s = Sudoku()
+    noneCount = 0
+    while not s.solved():
+        noneCount += 1
+        if noneCount >= threshold:
+            noneCount = 0
+            s = Sudoku()
+        x = random.randint(0, 8)
+        y = random.randint(0, 8)
+        if s[x,y]:
+            continue
+        num = random.randint(1, 9)
+        sTmp = Sudoku(s)
+        sTmp[x,y] = num
+        ps = paths(sTmp, 1)
+        if ps:
+            p = ps[-1]
+            if p.valid:
+                s = sTmp
+                noneCount = 0
+                if p.solved():
+                    return s
+
+def findConstrainedPuzzle(minMax = 10):
+    while True:
+        r = randomPuzzle()
+        maxP = maxPaths(r)
+        print maxP
+        if maxP <= minMax:
+            return r
+
+def workBackwards(maxPaths = 10000):
+    while True:
+        r = randomPuzzle()
+        rSolved = r
+        while True:
+            p = rSolved.possibleNext(count = 1)
+            if not p:
+                break
+            rSolved = p[0]
+
+        rCurrent = rSolved
+        while True:
+            minGrid = None
+            minNext = 0
+            for x in range(9):
+                for y in range(9):
+                    if not rCurrent[x, y]:
+                        continue
+                    next = Sudoku()
+                    for i in range(9):
+                        for j in range(9):
+                            if i != x or j != y:
+                                num = rCurrent[i, j]
+                                if num:
+                                    next[i, j] = num
+                    p = next.possibleNext(False)
+                    if p:
+                        if (not minGrid) or (len(p) < minNext):
+                            minGrid = next
+                            minNext = len(p)
+
+            if not minGrid:
+                return rCurrent
+            
+            p = paths(minGrid)
+            print len(p), minNext
+            if len(p) > maxPaths:
+                return rCurrent
+
+            print minGrid
+            
+            rCurrent = minGrid
+            
 
 def sampleSudoku():
     sample = Sudoku()
