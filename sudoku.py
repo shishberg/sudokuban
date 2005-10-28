@@ -1,3 +1,22 @@
+def readSudoku(filename):
+    board = SudokuBoard()
+    infile = file(filename)
+    x = 0
+    y = 0
+    for line in infile.readlines():
+        for c in line:
+            if c.isdigit():
+                board[x, y] = int(c)
+            elif c != ' ':
+                continue
+            x += 1
+            if x >= 9:
+                x = 0
+                y += 1
+
+    return board
+    
+
 class SudokuBoard:
     def __init__(self, regionSize = (3, 3), regionCount = (3, 3)):
         self.regionSize = regionSize
@@ -81,6 +100,48 @@ class SudokuBoard:
             
     def __setitem__(self, (x, y), value):
         self.cells[y][x].setValue(value)
+
+    def difficulty(self):
+
+        for set in self.sets:
+            for (value, cell) in set.determinedValues():
+                if not cell.value:
+                    print 1, cell, value
+                    cell.setValue(value)
+                    diff = self.difficulty()
+                    cell.setValue(None)
+                    return diff + 1
+
+        nextCell = None
+        nextPossible = None
+        
+        for row in self.cells:
+            for cell in row:
+                if not cell.value:
+                    possible = cell.possibleValues()
+                    if not possible:
+                        print 5, 'dead end'
+                        return 5 # Dead end
+                    if (not nextCell) or (len(possible) < len(nextPossible)):
+                        nextCell = cell
+                        nextPossible = possible
+
+        if not nextCell:
+            # Solved
+            return 0
+
+        diff = 10 * (len(nextPossible) - 1)
+        if diff:
+            print diff, 'branch'
+
+        for value in nextPossible:
+            print 3, nextCell, value
+            nextCell.setValue(value)
+            diff += self.difficulty() + 3
+            nextCell.setValue(None)
+
+        return diff
+
 
     def logicalMoves(self):
         moves = {}
@@ -275,3 +336,4 @@ def sample():
     sample[5,8] = 5
 
     return sample
+
