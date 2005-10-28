@@ -271,7 +271,7 @@ def paths(start):
         if not s in seen:
             seen.append(s)
             next = s.possibleNext()
-            print len(next)
+            print len(seen), len(next)
             current += next
     return seen
 
