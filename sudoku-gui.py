@@ -4,6 +4,22 @@ import pango
 
 from sudoku import *
 
+class BoardEntry(gtk.Entry):
+    def __init__(self, max, cell):
+        gtk.Entry.__init__(self, max)
+
+        self.cell = cell
+        
+        self.set_alignment(0.5)
+        self.set_width_chars(2)
+        self.set_has_frame(False)
+
+    def update(self):
+        if self.cell.value:
+            self.set_text(str(self.cell.value))
+        else:
+            self.set_text('')
+
 class SudokuGUI:
     presetFont = pango.FontDescription('sans bold 16')
     unsetFont = pango.FontDescription('sans normal 16')
@@ -33,6 +49,7 @@ class SudokuGUI:
         hintsMenuItem.set_submenu(hintsMenu)
         
         menuSolve = gtk.MenuItem('Solve')
+        menuSolve.connect('activate', self.solve)
         menuSolve.show()
         hintsMenu.append(menuSolve)
 
@@ -45,6 +62,8 @@ class SudokuGUI:
         self.table.set_row_spacings(5)
         self.table.set_col_spacings(5)
         self.window.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0x3fff, 0x3fff, 0x3fff))
+
+        self.entries = []
 
         for regionY in range(regions[1]):
             for regionX in range(regions[0]):
@@ -59,19 +78,18 @@ class SudokuGUI:
                     for x in range(regionSize[0]):
                         cellX = xStart + x
                         cellY = yStart + y
-                        entry = gtk.Entry(2)
-                        entry.set_alignment(0.5)
-                        entry.set_width_chars(2)
-                        entry.set_has_frame(False)
 
                         cell = self.board[cellX, cellY]
-                        entry.cell = cell
+                        entry = BoardEntry(2, cell)
+                        self.entries.append(entry)
+                        
                         if cell.value:
-                            entry.set_text(str(cell.value))
                             entry.modify_font(SudokuGUI.presetFont)
                         else:
                             entry.modify_font(SudokuGUI.unsetFont)
                             entry.modify_text(gtk.STATE_NORMAL, SudokuGUI.unsetColour)
+
+                        entry.update()
 
                         entry.connect("button_press_event", self.numberMenu, cell);
 
@@ -97,7 +115,7 @@ class SudokuGUI:
                     text = ' '
 
                 item = gtk.MenuItem(text)
-                item.connect_object("activate", self.setEntry, widget, value)
+                item.connect_object('activate', self.setEntry, widget, value)
                 item.show()
                 menu.append(item)
 
@@ -107,11 +125,21 @@ class SudokuGUI:
 
     def setEntry(self, entry, value):
         if value:
-            entry.set_text(str(value))
             entry.cell.setValue(value)
         else:
-            entry.set_text('')
             entry.cell.setValue(None)
+
+        entry.update()
+
+    def solve(self, widget):
+        solutions = self.board.solve(maxCount = 1)
+        if solutions:
+            for y in range(self.board.regionCount[1] * self.board.regionSize[1]):
+                for x in range(self.board.regionCount[0] * self.board.regionSize[0]):
+                    self.board[x, y] = solutions[0][x, y].value
+
+            for entry in self.entries:
+                entry.update()
     
     def main(self):
         gtk.main()
