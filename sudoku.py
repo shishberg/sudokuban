@@ -191,6 +191,10 @@ class SudokuBoard:
                     if (not nextCell) or (len(possible) < len(nextPossible)):
                         nextCell = cell
                         nextPossible = possible
+			if len(nextPossible) == 1:
+			    break
+	    if nextPossible and len(nextPossible) == 1:
+	        break
 
         if not nextCell:
             if countOnly:
@@ -361,3 +365,5 @@ s3 = readSudoku('medium.txt')
 s4 = readSudoku('challenging.txt')
 s5 = readSudoku('tough.txt')
 s6 = readSudoku('deadend.txt')
+sList = [s1, s2, s3, s4, s5, s6]
+
