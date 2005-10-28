@@ -94,8 +94,8 @@ class Settings:
         self.colourColumn     = gtk.gdk.Color(0xbfff, 0xf7ff, 0xbfff)
         self.colourRegion     = gtk.gdk.Color(0xffff, 0xc7ff, 0xc7ff)
 
-        self.fontPreset = pango.FontDescription('sans bold 18')
-        self.fontUnset =  pango.FontDescription('sans 18')
+        self.fontPreset = pango.FontDescription('sans bold 24')
+        self.fontUnset =  pango.FontDescription('sans 24')
 
         # Load from file
         self.load()
@@ -490,6 +490,8 @@ class SudokuGUI:
             ('Exclude', 'sudoku-exclude', '_Restrict', None, tipExclude, self.toggleExclude)
             ])
 
+        # Catch error under PyGTK <2.6, i.e. before AboutDialog and STOCK_ABOUT.
+        # Not sure exactly what this will achieve, but at least it won't crash.
         try:
             self.actionGroup.add_actions([
                 ('Help', None, '_Help'),
@@ -1196,7 +1198,7 @@ def quit(widget = None):
 
 if __name__ == '__main__':
     try:
-        settings = Settings(os.path.join(os.environ['HOME'], '.sudokusensei'))
+        settings = Settings(os.path.expanduser('~/.sudokusensei'))
     except:
         try:
             settings = Settings('.sudokusensei')
