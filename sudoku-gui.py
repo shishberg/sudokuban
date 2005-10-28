@@ -237,18 +237,32 @@ class SudokuGUI:
 
     def saveAsDialog(self, widget):
         filedialog = gtk.FileSelection('Save As')
+        filedialog.set_modal(True)
         filedialog.ok_button.connect_object('clicked', self.saveFromDialog, filedialog)
         filedialog.cancel_button.connect_object('clicked', destroyFileDialog, filedialog)
         filedialog.show()
 
-    def saveFromDialog(self, filedialog):
+    def saveFromDialog(self, filedialog, overwrite = False):
         filename = filedialog.get_filename()
         if filename:
-            self.setFilename(filename)
-            try:
-                self.saveFile()
-            finally:
-                filedialog.destroy()
+            if not overwrite and os.path.exists(filename):
+                confirm = gtk.MessageDialog(filedialog, type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO)
+                confirm.set_markup('Overwrite %s?' % filename)
+                confirm.set_title('Confirm overwrite')
+                confirm.set_modal(True)
+                confirm.connect('response', self.confirmOverwrite, filedialog)
+                confirm.show()
+            else:
+                self.setFilename(filename)
+                try:
+                    self.saveFile()
+                finally:
+                    filedialog.destroy()
+
+    def confirmOverwrite(self, dialog, response, filedialog):
+        dialog.destroy()
+        if response == gtk.RESPONSE_YES:
+            self.saveFromDialog(filedialog, True)            
 
     def saveFile(self, widget = None):
         out = file(self.filename, 'w')
@@ -273,6 +287,7 @@ openWindows = []
 
 def openDialog(widget = None):
     filedialog = gtk.FileSelection('Open')
+    filedialog.set_modal(True)
     filedialog.ok_button.connect_object('clicked', loadFromDialog, filedialog)
     filedialog.cancel_button.connect_object('clicked', destroyFileDialog, filedialog)
     filedialog.show()
