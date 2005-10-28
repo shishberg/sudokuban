@@ -47,14 +47,14 @@ def solve(form):
 
     if solutions:
         for sol in solutions:
-            htmlGrid(sol, sudoku)
+            htmlGrid(sol, form)
     else:
         print '<p align=center>Sorry, no solutions.</p>'
         showForm(form)
 
     print '<p align=center><a href="%s">Link here</a> | <a href=sudoku.cgi>Start again</a></p>' % link
 
-def htmlGrid(sudoku, original):
+def htmlGrid(sudoku, form):
     print '<table align=center border=0 cellspacing=4 cellpadding=0 bgcolor=#7f7f7f>'
     for row in range(0, 3):
         print '<tr>'
@@ -70,7 +70,7 @@ def htmlGrid(sudoku, original):
                     else:
                         valStr = '&nbsp;'
 
-                    if original[col * 3 + col2, row * 3 + row2]:
+                    if form.has_key('num%d%d' % (col * 3 + col2, row * 3 + row2)):
                         valStr = '<b>%s</b>' % valStr
 
                     print '<td width=30 align=center bgcolor=#ffffff><font color=#000000 size=+2>%s</font></td>' % valStr
