@@ -1,16 +1,27 @@
-def readSudoku(filename):
-    board = SudokuBoard()
+def readSudoku(filename, regionSize = (3, 3), regionCount = (3, 3)):
+    board = SudokuBoard(regionSize, regionCount)
     infile = file(filename)
     x = 0
     y = 0
     for line in infile.readlines():
-        for c in line:
+        if regionSize[0] * regionSize[1] < 10:
+	    cells = line
+	else:
+	    if '+' in line:
+	        cells = line
+	    else:
+	        line = line.replace('|',',').replace('+',',').replace('-',',')
+		if len(line) == (regionSize[0] * regionSize[1]) - 2:
+		    line = line[1:-1]
+	        cells = [cell.strip() or ' ' for cell in line.split(',')]
+		print cells
+        for c in cells:
             if c.isdigit():
                 board[x, y] = int(c)
             elif c != ' ':
                 continue
             x += 1
-            if x >= 9:
+            if x >= regionSize[0] * regionCount[0]:
                 x = 0
                 y += 1
 
@@ -67,16 +78,16 @@ class SudokuBoard:
 
     def __repr__(self):
         
-        divider = ''
-        for xRegion in range(self.regionCount[0]):
-            divider += '+'
-            for xSquare in range(self.regionSize[0]):
-                divider += '-'
-        divider += '+\n'
-
         maxLength = len(str(self.values[-1]))
         cellPrint = '%' + str(maxLength) + 'd'
         emptyCell = ' ' * maxLength
+
+        divider = ''
+        for xRegion in range(self.regionCount[0]):
+            divider += '+'
+            for xSquare in range(self.regionSize[0] * maxLength):
+                divider += '-'
+        divider += '+\n'
 
         board = ''
         for yRegion in range(0, self.size[1], self.regionSize[1]):
@@ -150,7 +161,7 @@ class SudokuBoard:
         return diff
 
 
-    def logicalMoves(self, sweep = True, exclude = True):
+    def logicalMoves(self, sweep = True, exclude = True, maxCount = 0):
         moves = {}
 
         if exclude:
@@ -160,12 +171,16 @@ class SudokuBoard:
                         possible = cell.possibleValues()
                         if len(possible) == 1:
                             moves[cell] = possible[0]
+                            if maxCount and (len(moves) >= maxCount):
+                                return moves
 
         if sweep:
             for set in self.sets:
                 for (value, cell) in set.determinedValues():
                     if not cell.value:
                         moves[cell] = value
+                        if maxCount and (len(moves) >= maxCount):
+                            return moves
 
         return moves
 
@@ -178,29 +193,30 @@ class SudokuBoard:
         
         nextCell = None
         nextPossible = None
-        
-        for row in self.cells:
-            for cell in row:
-                if not cell.value:
-                    possible = cell.possibleValues()
-                    if not possible:
-                        if countOnly:
-                            return 0
-                        else:
-                            return []
-                    if (not nextCell) or (len(possible) < len(nextPossible)):
-                        nextCell = cell
-                        nextPossible = possible
-			if len(nextPossible) == 1:
-			    break
-	    if nextPossible and len(nextPossible) == 1:
-	        break
 
-        if not nextCell:
-            if countOnly:
-                return 1
-            else:
-                return [self.copy()]
+	moves = self.logicalMoves(maxCount = 1)
+	if moves:
+	    nextCell = moves.keys()[0]
+	    nextPossible = [moves[nextCell]]
+	else:
+            for row in self.cells:
+                for cell in row:
+                    if not cell.value:
+                        possible = cell.possibleValues()
+                        if not possible:
+                            if countOnly:
+                                return 0
+                            else:
+                                return []
+                        if (not nextCell) or (len(possible) < len(nextPossible)):
+                            nextCell = cell
+                            nextPossible = possible
+        
+            if not nextCell:
+                if countOnly:
+                    return 1
+                else:
+                    return [self.copy()]
 
         if countOnly:
             solutions = 0
@@ -365,5 +381,6 @@ s3 = readSudoku('medium.txt')
 s4 = readSudoku('challenging.txt')
 s5 = readSudoku('tough.txt')
 s6 = readSudoku('deadend.txt')
+four = readSudoku('4x4.txt', (4,4), (4,4))
 sList = [s1, s2, s3, s4, s5, s6]
 
