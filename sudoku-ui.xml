@@ -3,8 +3,11 @@
         <menu action="File">
              <menuitem action="New"/>
              <menuitem action="Open"/>
+             <separator/>
              <menuitem action="Save"/>
              <menuitem action="SaveAs"/>
+             <separator/>
+             <menuitem action="Close"/>
              <menuitem action="Quit"/>
         </menu>
         <menu action="Puzzle">

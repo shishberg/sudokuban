@@ -176,7 +176,8 @@ class SudokuGUI:
                                       ('Open', gtk.STOCK_OPEN, '_Open', '<Control>O', None, openDialog),
                                       ('Save', gtk.STOCK_SAVE, '_Save', '<Control>S', None, self.saveFile),
                                       ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', None, self.saveAsDialog),
-                                      ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', None, self.destroy),
+                                      ('Close', gtk.STOCK_CLOSE, '_Close', '<Control>W', None, self.destroy),
+                                      ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', None, quit),
                                       ('Puzzle', None, '_Puzzle'),
                                       ('CheckValid', None, 'Check _Valid', None, None, self.checkValid),
                                       ('CheckSolvable', None, 'Check _Solvable', None, None, self.checkSolvable),
@@ -373,7 +374,7 @@ class SudokuGUI:
         if openWindows:
             self.window.destroy()
         else:
-            gtk.main_quit()
+            quit()
 
 
 class ProgressDialog(gtk.Dialog):
@@ -568,6 +569,10 @@ def newPuzzleDialog(widget = None):
         newDialog = NewPuzzleDialog()
     newDialog.show()
     return newDialog
+
+
+def quit(widget = None):
+    gtk.main_quit()
 
 
 if __name__ == '__main__':
