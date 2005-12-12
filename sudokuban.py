@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# sudoku-sensei.py - GUI for Sudoku Sensei.
+# sudokuban.py - GUI for SudokuBan.
 #
 # Copyright (C) 2005 David McLeish <dave@dmcleish.id.au>
 #
@@ -50,7 +50,7 @@ tipSaveAs = 'Save a puzzle to a new location.'
 
 tipClose = 'Close the current puzzle window.'
 
-tipQuit = 'Exit Sudoku Sensei.'
+tipQuit = 'Exit SudokuBan.'
 
 tipFonts = 'Edit fonts used in the main window.'
 
@@ -431,7 +431,7 @@ class SudokuGUI:
         self.actionGroup.get_action('Save').set_sensitive(filename != None)
 
     def setTitle(self):
-        title = 'Sudoku Sensei'
+        title = 'SudokuBan'
         if self.filename:
             title = os.path.basename(self.filename) + ' - ' + title
 
@@ -469,7 +469,7 @@ class SudokuGUI:
         self.registerIcon('sudoku-presets', os.path.join(programDir, 'images/presets.png'))
         self.iconFactory.add_default()
 
-        self.actionGroup = gtk.ActionGroup('SudokuSensei')
+        self.actionGroup = gtk.ActionGroup('SudokuBan')
         self.actionGroup.add_actions([
             ('File', None, '_File'),
             ('New', gtk.STOCK_NEW, '_New', '<Control>N', tipNew, self.newPuzzleDialog),
@@ -500,7 +500,7 @@ class SudokuGUI:
         try:
             self.actionGroup.add_actions([
                 ('Help', None, '_Help'),
-                ('About', gtk.STOCK_ABOUT, '_About Sudoku Sensei', None, None, aboutDialog)
+                ('About', gtk.STOCK_ABOUT, '_About SudokuBan', None, None, aboutDialog)
                 ])
         except:
             pass
@@ -1154,7 +1154,7 @@ def coloursDialog(widget = None):
 def aboutDialog(widget = None):
     try:
         dialog = gtk.AboutDialog()
-        dialog.set_name('Sudoku Sensei')
+        dialog.set_name('SudokuBan')
         dialog.set_version('1.0')
         dialog.set_copyright('Copyright (C) David McLeish 2005')
         dialog.set_website('http://rightside.fissure.org/sudoku/')
@@ -1212,10 +1212,10 @@ if __name__ == '__main__':
         programDir = '.'
     
     try:
-        settings = Settings(os.path.expanduser('~/.sudokusensei'))
+        settings = Settings(os.path.expanduser('~/.sudokuban'))
     except:
         try:
-            settings = Settings('.sudokusensei')
+            settings = Settings('.sudokuban')
         except:
             settings = Settings()
     
