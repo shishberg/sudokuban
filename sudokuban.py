@@ -217,6 +217,61 @@ class Settings:
             return False
 
 
+class SudokuAction:
+    def __init__(self, gui):
+        self.gui = gui
+
+    def execute(self):
+        pass
+
+    def inverse(self):
+        return None
+
+    def __repr__(self):
+        return 'Action'
+
+class SetEntryAction:
+    def __init__(self, gui, entry, value, select = True):
+        SudokuAction.__init__(self, gui)
+        self.entry = entry
+        self.value = value
+        self.select = select
+
+    def inverse(self):
+        return SetEntryAction(self.gui, self.entry, self.entry.getValue(), self.select)
+
+    def execute(self):
+        self.entry.setValue(self.value)
+        if self.select:
+            self.gui.setSelection(self.entry)
+
+    def __repr__(self):
+        if self.value:
+            return 'Set Cell %d' % self.value
+        else:
+            return 'Clear Cell'
+        
+
+class CompoundAction:
+    def __init__(self, gui, actions, title):
+        SudokuAction.__init__(self, gui)
+        self.actions = actions
+        self.title = title
+        
+    def inverse(self):
+        inverse_actions = []
+        for i in range(len(self.actions-1), -1, -1):
+            inverse_actions.append(self.actions[i].inverse())
+        return MultipleSetAction(self.gui, inverse_actions, self.title)
+
+    def execute(self):
+        for action in self.actions:
+            action.execute()
+
+    def __repr__(self):
+        return self.title
+
+
 class BoardEntry(gtk.EventBox):
 
     def __init__(self, cell, gui):
@@ -292,6 +347,9 @@ class BoardEntry(gtk.EventBox):
             self.gui.updateAll()
         else:
             self.update()
+
+    def getValue(self):
+        return self.cell.value
 
 class SudokuGUI:
     def __init__(self, board = SudokuBoard(), filename = None, dirty = False):
