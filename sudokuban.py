@@ -52,6 +52,10 @@ tipClose = 'Close the current puzzle window.'
 
 tipQuit = 'Exit SudokuBan.'
 
+tipUndo = 'Undo the last action.'
+
+tipRedo = 'Redo the last undone action.'
+
 tipFonts = 'Edit fonts used in the main window.'
 
 tipColours = 'Edit colours used in the main window.'
@@ -230,6 +234,7 @@ class SudokuAction:
     def __repr__(self):
         return 'Action'
 
+
 class SetEntryAction(SudokuAction):
     def __init__(self, gui, entry, value, select = True, preset = None):
         SudokuAction.__init__(self, gui)
@@ -253,7 +258,10 @@ class SetEntryAction(SudokuAction):
 
     def __repr__(self):
         if self.value:
-            return 'Set Value %d' % self.value
+            if self.preset:
+                return 'Preset %d' % self.value
+            else:
+                return 'Set %d' % self.value
         else:
             return 'Clear Cell'
         
@@ -335,9 +343,6 @@ class BoardEntry(gtk.EventBox):
         if value == 0:
             value = None
         
-        if (not preset) and (self.cell.value) and (self.cell.state != CELL_UNSET):
-            return
-
         if self.cell.value != value:
             self.cell.setValue(value)
             self.gui.dirty = True
@@ -398,6 +403,9 @@ class SudokuGUI:
         self.table.set_row_spacings(5)
         self.table.set_col_spacings(5)
         self.window.modify_bg(gtk.STATE_NORMAL, settings.colourBorder)
+
+        self.undoList = []
+        self.redoList = []
 
         self.entries = []
         self.cells = {}
@@ -549,6 +557,9 @@ class SudokuGUI:
             ('SaveAs', gtk.STOCK_SAVE_AS, 'Save _As...', '<Control><Shift>S', tipSaveAs, self.saveAsDialog),
             ('Close', gtk.STOCK_CLOSE, '_Close', '<Control>W', tipClose, self.destroy),
             ('Quit', gtk.STOCK_QUIT, '_Quit', '<Control>Q', tipQuit, closeAll),
+            ('Edit', None, '_Edit'),
+            ('Undo', gtk.STOCK_UNDO, '_Undo', '<Control>Z', tipUndo, self.undo),
+            ('Redo', gtk.STOCK_REDO, '_Redo', '<Control>Y', tipRedo, self.redo),
             ('Settings', None, '_Settings'),
             ('Fonts', gtk.STOCK_SELECT_FONT, '_Fonts', None, tipFonts, fontsDialog),
             ('Colours', gtk.STOCK_SELECT_COLOR, '_Colours', None, tipColours, coloursDialog),
@@ -647,11 +658,28 @@ class SudokuGUI:
             entry.update()
 
     def setEntry(self, entry, value):
+        if (not self.preset) and entry.isPreset():
+            return
+        
         action = SetEntryAction(self, entry, value)
         self.runAction(action)
 
     def runAction(self, action):
+        self.redoList = []
+        self.undoList.append(action.inverse())
         action.execute()
+
+    def undo(self, widget = None):
+        if self.undoList:
+            action = self.undoList.pop()
+            self.redoList.append(action.inverse())
+            action.execute()
+
+    def redo(self, widget = None):
+        if self.redoList:
+            action = self.redoList.pop()
+            self.undoList.append(action.inverse())
+            action.execute()
 
     def checkValid(self, widget = None):
         if self.board.isValid():
