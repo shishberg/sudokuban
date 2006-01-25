@@ -230,29 +230,35 @@ class SudokuAction:
     def __repr__(self):
         return 'Action'
 
-class SetEntryAction:
-    def __init__(self, gui, entry, value, select = True):
+class SetEntryAction(SudokuAction):
+    def __init__(self, gui, entry, value, select = True, preset = None):
         SudokuAction.__init__(self, gui)
         self.entry = entry
         self.value = value
         self.select = select
 
+        if preset == None:
+            self.preset = gui.preset
+        else:
+            self.preset = preset
+
     def inverse(self):
-        return SetEntryAction(self.gui, self.entry, self.entry.getValue(), self.select)
+        return SetEntryAction(self.gui, self.entry, self.entry.getValue(),
+                              self.select, self.entry.isPreset())
 
     def execute(self):
-        self.entry.setValue(self.value)
+        self.entry.setValue(self.value, self.preset)
         if self.select:
             self.gui.setSelection(self.entry)
 
     def __repr__(self):
         if self.value:
-            return 'Set Cell %d' % self.value
+            return 'Set Value %d' % self.value
         else:
             return 'Clear Cell'
         
 
-class CompoundAction:
+class CompoundAction(SudokuAction):
     def __init__(self, gui, actions, title):
         SudokuAction.__init__(self, gui)
         self.actions = actions
@@ -325,14 +331,17 @@ class BoardEntry(gtk.EventBox):
         elif requisition.height < requisition.width:
             self.set_size_request(requisition.width, requisition.width)
 
-    def setValue(self, value):
-        if (not self.gui.preset) and (self.cell.value) and (self.cell.state != CELL_UNSET):
+    def setValue(self, value, preset):
+        if value == 0:
+            value = None
+        
+        if (not preset) and (self.cell.value) and (self.cell.state != CELL_UNSET):
             return
 
         if self.cell.value != value:
             self.cell.setValue(value)
             self.gui.dirty = True
-        if self.gui.preset:
+        if preset:
             if self.cell.state != CELL_PRESET:
                 self.cell.state = CELL_PRESET
                 self.gui.dirty = True
@@ -350,6 +359,9 @@ class BoardEntry(gtk.EventBox):
 
     def getValue(self):
         return self.cell.value
+
+    def isPreset(self):
+        return self.cell.state == CELL_PRESET
 
 class SudokuGUI:
     def __init__(self, board = SudokuBoard(), filename = None, dirty = False):
@@ -635,10 +647,11 @@ class SudokuGUI:
             entry.update()
 
     def setEntry(self, entry, value):
-        if value:
-            entry.setValue(value)
-        else:
-            entry.setValue(None)
+        action = SetEntryAction(self, entry, value)
+        self.runAction(action)
+
+    def runAction(self, action):
+        action.execute()
 
     def checkValid(self, widget = None):
         if self.board.isValid():
