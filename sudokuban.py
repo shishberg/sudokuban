@@ -237,11 +237,12 @@ class SudokuAction:
 
 class SetEntryAction(SudokuAction):
     def __init__(self, gui, entry, value, select = True,
-                 preset = None, title = None):
+                 preset = None, update = True, title = None):
         SudokuAction.__init__(self, gui)
         self.entry = entry
         self.value = value
         self.select = select
+        self.update = update
 
         if preset == None:
             self.preset = gui.preset
@@ -261,22 +262,26 @@ class SetEntryAction(SudokuAction):
 
     def inverse(self):
         return SetEntryAction(self.gui, self.entry, self.entry.getValue(),
-                              self.select, self.entry.isPreset(), self.title)
+                              self.select, self.entry.isPreset(),
+                              self.update, self.title)
 
     def execute(self):
         self.entry.setValue(self.value, self.preset)
         if self.select:
             self.gui.setSelection(self.entry)
+        if self.update:
+            self.gui.update(self.entry)
 
     def __repr__(self):
         return self.title
         
 
 class CompoundAction(SudokuAction):
-    def __init__(self, gui, actions, title):
+    def __init__(self, gui, actions, title, update = True):
         SudokuAction.__init__(self, gui)
         self.actions = actions
         self.title = title
+        self.update = update
         
     def inverse(self):
         inverse_actions = []
@@ -287,6 +292,8 @@ class CompoundAction(SudokuAction):
     def execute(self):
         for action in self.actions:
             action.execute()
+        if self.update:
+            self.gui.updateAll()
 
     def __repr__(self):
         return self.title
@@ -362,11 +369,6 @@ class BoardEntry(gtk.EventBox):
                 self.gui.dirty = True
         if value:
             self.gui.selectedValue = value
-        
-        if self.gui.scanHighlight:
-            self.gui.updateAll()
-        else:
-            self.update()
 
     def getValue(self):
         return self.cell.value
@@ -387,7 +389,6 @@ class SudokuGUI:
         self.dirty = dirty
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        #self.window.connect('destroy', self.destroy)
         self.window.connect('delete-event', self.destroy)
 
         self.window.connect('key-press-event', self.keyPress)
@@ -662,10 +663,16 @@ class SudokuGUI:
 
         return True
 
+    def update(self, entry):
+        if self.scanHighlight:
+            self.updateAll()
+        else:
+            entry.update()
+
     def updateAll(self):
         self.window.modify_bg(gtk.STATE_NORMAL, settings.colourBorder)
         for entry in self.entries:
-            entry.update()
+            entry.update()        
 
     def setEntry(self, entry, value):
         if (not self.preset) and entry.isPreset():
@@ -796,7 +803,8 @@ class SudokuGUI:
                     entry = self.cells[(x, y)]
                     actions.append(SetEntryAction(self, entry,
                                                   solutions[0][x, y].value,
-                                                  False, entry.isPreset()))
+                                                  False, entry.isPreset(),
+                                                  False))
 
             compound = CompoundAction(self, actions, 'Solve')
             self.runAction(compound)
@@ -1037,11 +1045,11 @@ class ColourDialog(gtk.Dialog):
             settings.colourColumn = self.oldColumn
             settings.colourRegion = self.oldRegion
             settings.update()
-            self.updateAll()
+            self.updateWindows()
 
         self.destroy()
 
-    def updateAll(self):
+    def updateWindows(self):
         for window in openWindows:
             window.updateAll()
 
