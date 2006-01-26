@@ -355,19 +355,20 @@ class BoardEntry(gtk.EventBox):
     def setValue(self, value, preset):
         if value == 0:
             value = None
+            preset = False
+
+        if value != self.cell.value or \
+           preset != (self.cell.state == CELL_PRESET):
+            self.gui.dirty = True
         
         if self.cell.value != value:
             self.cell.setValue(value)
-            self.gui.dirty = True
         if preset:
-            if self.cell.state != CELL_PRESET:
-                self.cell.state = CELL_PRESET
-                self.gui.dirty = True
+            self.cell.state = CELL_PRESET
         else:
-            if self.cell.state != CELL_UNSET:
-                self.cell.state = CELL_UNSET
-                self.gui.dirty = True
-        if value:
+            self.cell.state = CELL_UNSET
+        
+        if value and self == self.gui.selection:
             self.gui.selectedValue = value
 
     def getValue(self):
