@@ -280,9 +280,9 @@ class CompoundAction(SudokuAction):
         
     def inverse(self):
         inverse_actions = []
-        for i in range(len(self.actions-1), -1, -1):
+        for i in range(len(self.actions)-1, -1, -1):
             inverse_actions.append(self.actions[i].inverse())
-        return MultipleSetAction(self.gui, inverse_actions, self.title)
+        return CompoundAction(self.gui, inverse_actions, self.title)
 
     def execute(self):
         for action in self.actions:
@@ -790,12 +790,16 @@ class SudokuGUI:
             return
         
         if solutions:
+            actions = []
             for y in range(self.board.regionCount[1] * self.board.regionSize[1]):
                 for x in range(self.board.regionCount[0] * self.board.regionSize[0]):
-                    self.board[x, y] = solutions[0][x, y].value
+                    entry = self.cells[(x, y)]
+                    actions.append(SetEntryAction(self, entry,
+                                                  solutions[0][x, y].value,
+                                                  False, entry.isPreset()))
 
-            self.dirty = True
-            self.updateAll()
+            compound = CompoundAction(self, actions, 'Solve')
+            self.runAction(compound)
 
     def duplicate(self, widget):
         gui = SudokuGUI(self.board.copy(), dirty = True)
