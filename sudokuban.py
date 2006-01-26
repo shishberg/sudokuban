@@ -236,7 +236,8 @@ class SudokuAction:
 
 
 class SetEntryAction(SudokuAction):
-    def __init__(self, gui, entry, value, select = True, preset = None):
+    def __init__(self, gui, entry, value, select = True,
+                 preset = None, title = None):
         SudokuAction.__init__(self, gui)
         self.entry = entry
         self.value = value
@@ -247,9 +248,20 @@ class SetEntryAction(SudokuAction):
         else:
             self.preset = preset
 
+        if title:
+            self.title = title
+        else:      
+            if self.value:
+                if self.preset:
+                    self.title = 'Preset %d' % self.value
+                else:
+                    self.title = 'Value %d' % self.value
+            else:
+                self.title = 'Clear Cell'
+
     def inverse(self):
         return SetEntryAction(self.gui, self.entry, self.entry.getValue(),
-                              self.select, self.entry.isPreset())
+                              self.select, self.entry.isPreset(), self.title)
 
     def execute(self):
         self.entry.setValue(self.value, self.preset)
@@ -257,13 +269,7 @@ class SetEntryAction(SudokuAction):
             self.gui.setSelection(self.entry)
 
     def __repr__(self):
-        if self.value:
-            if self.preset:
-                return 'Preset %d' % self.value
-            else:
-                return 'Set %d' % self.value
-        else:
-            return 'Clear Cell'
+        return self.title
         
 
 class CompoundAction(SudokuAction):
@@ -390,6 +396,9 @@ class SudokuGUI:
         self.window.add(self.vbox)
         self.vbox.show()
 
+        self.undoList = []
+        self.redoList = []
+
         self.createActions()
 
         self.setFilename(filename)
@@ -403,9 +412,6 @@ class SudokuGUI:
         self.table.set_row_spacings(5)
         self.table.set_col_spacings(5)
         self.window.modify_bg(gtk.STATE_NORMAL, settings.colourBorder)
-
-        self.undoList = []
-        self.redoList = []
 
         self.entries = []
         self.cells = {}
@@ -576,6 +582,10 @@ class SudokuGUI:
             ('Exclude', 'sudoku-exclude', '_Restrict', None, tipExclude, self.toggleExclude)
             ])
 
+        self.undoAction = self.actionGroup.get_action('Undo')
+        self.redoAction = self.actionGroup.get_action('Redo')
+        self.updateUndoActions()
+
         # Catch error under PyGTK <2.6, i.e. before AboutDialog and STOCK_ABOUT.
         # Not sure exactly what this will achieve, but at least it won't crash.
         try:
@@ -668,18 +678,33 @@ class SudokuGUI:
         self.redoList = []
         self.undoList.append(action.inverse())
         action.execute()
+        self.updateUndoActions()
 
     def undo(self, widget = None):
         if self.undoList:
             action = self.undoList.pop()
             self.redoList.append(action.inverse())
             action.execute()
+            self.updateUndoActions()
 
     def redo(self, widget = None):
         if self.redoList:
             action = self.redoList.pop()
             self.undoList.append(action.inverse())
             action.execute()
+            self.updateUndoActions()
+
+    def updateUndoActions(self):
+        self.undoAction.set_sensitive(self.undoList != [])
+        self.redoAction.set_sensitive(self.redoList != [])
+        if self.undoList:
+            self.undoAction.set_property('label', '_Undo %s' % repr(self.undoList[-1]))
+        else:
+            self.undoAction.set_property('label', '_Undo')
+        if self.redoList:
+            self.redoAction.set_property('label', '_Redo %s' % repr(self.redoList[-1]))
+        else:
+            self.redoAction.set_property('label', '_Redo')
 
     def checkValid(self, widget = None):
         if self.board.isValid():
