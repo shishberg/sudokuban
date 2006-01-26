@@ -1034,7 +1034,7 @@ class ColourDialog(gtk.Dialog):
             settings.colourRegion = newColour
 
         settings.update()
-        self.updateAll()
+        self.updateWindows()
 
     def response(self, widget, data):
         if data == gtk.RESPONSE_CANCEL or data == gtk.RESPONSE_DELETE_EVENT:
