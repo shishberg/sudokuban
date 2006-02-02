@@ -26,6 +26,9 @@ import pygtk, gtk, pango
 
 from sudoku import *
 
+# Current version.
+sudokuBanVersion = '1.1pre'
+
 # Key press event values for arrow keys. This is probably
 # defined somewhere (or at least it should be) but I couldn't
 # find it.
@@ -1292,7 +1295,7 @@ def aboutDialog(widget = None):
     try:
         dialog = gtk.AboutDialog()
         dialog.set_name('SudokuBan')
-        dialog.set_version('1.0')
+        dialog.set_version(sudokuBanVersion)
         dialog.set_copyright('Copyright (C) David McLeish 2005')
         dialog.set_website('http://rightside.fissure.org/sudoku/')
         dialog.set_logo(gtk.gdk.pixbuf_new_from_file(os.path.join(programDir, 'images/icon.png')))
